@@ -46,6 +46,227 @@ class LogisticModel(models.BaseModel):
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     return {"predictions": output}
 
+
+class OneHiddenModel(models.BaseModel):
+
+  def create_model(self, model_input, vocab_size, l2_penalty=1e-8, **unused_params):
+    net = slim.fully_connected(
+        model_input, 2048, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    output = slim.fully_connected(
+        net, vocab_size, activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    return {"predictions": output}
+
+
+class OneHiddenSeparateModel(models.BaseModel):
+
+  def create_model(self, model_input, vocab_size, l2_penalty=1e-8, **unused_params):
+    audio = slim.fully_connected(
+            model_input[:, -128:], 64, activation_fn=tf.nn.relu,
+            weights_regularizer=slim.l2_regularizer(l2_penalty))
+    video = slim.fully_connected(
+            model_input[:, :-128], 512, activation_fn=tf.nn.relu,
+            weights_regularizer=slim.l2_regularizer(l2_penalty))
+    paired = slim.fully_connected(
+            model_input, 512, activation_fn=tf.nn.relu,
+            weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net = tf.concat([audio, video, paired], -1)
+    output = slim.fully_connected(
+        net, vocab_size, activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    return {"predictions": output}
+
+
+class OneHiddenShortcutModel(models.BaseModel):
+
+  def create_model(self, model_input, vocab_size, l2_penalty=1e-8, **unused_params):
+    net = slim.fully_connected(
+        model_input, 512, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_concated = tf.concat([model_input, net], -1)
+    output = slim.fully_connected(
+        net_concated, vocab_size, activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    return {"predictions": output}
+
+
+class TwoHiddenShortcutModel(models.BaseModel):
+
+  def create_model(self, 
+          model_input, 
+          vocab_size, 
+          l2_penalty=1e-8, 
+          is_training=False,
+          **unused_params):
+    audio = model_input[:, -128:]
+    audio = tf.nn.l2_normalize(audio, -1)
+    video = model_input[:, :-128]
+    video = tf.nn.l2_normalize(video, -1)
+
+    model_input = tf.concat([video, audio], -1)
+    net = slim.fully_connected(
+        model_input, 512, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list = [model_input, net]
+    net_concated = tf.concat(net_list, -1)
+
+    net = slim.fully_connected(
+        net_concated, 256, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list.append(net)
+    net_concated = tf.concat(net_list, -1)
+ 
+    output = slim.fully_connected(
+        net_concated, vocab_size, activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    return {"predictions": output}
+
+
+class THSModel(models.BaseModel):
+
+  def create_model(self, 
+          model_input, 
+          vocab_size, 
+          l2_penalty=1e-8, 
+          is_training=False,
+          **unused_params):
+    audio = model_input[:, -128:]
+    audio = tf.nn.l2_normalize(audio, -1)
+    video = model_input[:, :-128]
+    video = tf.nn.l2_normalize(video, -1)
+
+    model_input = tf.concat([video, audio], -1)
+    net = slim.fully_connected(
+        model_input, 1024, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list = [model_input, net]
+    net_concated = tf.concat(net_list, -1)
+
+    net = slim.fully_connected(
+        net_concated, 512, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list.append(net)
+    net_concated = tf.concat(net_list, -1)
+ 
+    output = slim.fully_connected(
+        net_concated, vocab_size, activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    return {"predictions": output}
+
+
+class SSModel(models.BaseModel):
+
+  def create_model(self, model_input, vocab_size, l2_penalty=1e-8, **unused_params):
+    net = slim.fully_connected(
+        model_input, 256, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    audio = slim.fully_connected(
+            model_input[:, -128:], 32, activation_fn=tf.nn.relu,
+            weights_regularizer=slim.l2_regularizer(l2_penalty))
+    video = slim.fully_connected(
+            model_input[:, :-128], 256, activation_fn=tf.nn.relu,
+            weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list = [model_input, net, video, audio]
+    net_concated = tf.concat(net_list, -1)
+
+    net = slim.fully_connected(
+        net_concated, 256, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list.append(net)
+    net_concated = tf.concat(net_list, -1)
+ 
+    output = slim.fully_connected(
+        net_concated, vocab_size, activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    return {"predictions": output}
+
+
+class ManyHiddenShortcutModel(models.BaseModel):
+
+  def create_model(self, model_input, vocab_size, l2_penalty=1e-8, **unused_params):
+    net = slim.fully_connected(
+        model_input, 512, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list = [model_input, net]
+    net_concated = tf.concat(net_list, -1)
+
+    net = slim.fully_connected(
+        net_concated, 256, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list.append(net)
+    net_concated = tf.concat(net_list, -1)
+
+    net = slim.fully_connected(
+        net_concated, 128, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list.append(net)
+    net_concated = tf.concat(net_list, -1)
+ 
+    net = slim.fully_connected(
+        net_concated, 64, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list.append(net)
+    net_concated = tf.concat(net_list, -1)
+ 
+    net = slim.fully_connected(
+        net_concated, 32, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list.append(net)
+    net_concated = tf.concat(net_list, -1)
+ 
+    net = slim.fully_connected(
+        net_concated, 16, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net_list.append(net)
+    net_concated = tf.concat(net_list, -1)
+ 
+    output = slim.fully_connected(
+        net_concated, vocab_size, activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    return {"predictions": output}
+
+
+class LabelProfileModel(models.BaseModel):
+
+  def create_model(self, 
+                   model_input,
+                   vocab_size, 
+                   l2_penalty=1e-8,
+                   profile_size=100,
+                   **unused_params):
+    one = tf.constant([[1.]])
+    label_profiles_flatten = tf.layers.dense(
+            one, profile_size * vocab_size, 
+            use_bias=False, activation=tf.nn.sigmoid, 
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_penalty)
+        )
+    label_profiles = tf.reshape(label_profiles_flatten, [vocab_size, profile_size])
+
+    video_profiles = tf.layers.dense(
+            model_input, profile_size,
+            activation=tf.nn.sigmoid, 
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_penalty)
+    )
+    recovered_input = tf.layers.dense(
+            video_profiles, model_input.shape[1].value,
+            activation=tf.nn.sigmoid, 
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_penalty)
+    )
+    ae_loss = tf.losses.mean_squared_error(
+        model_input,
+        recovered_input,
+        weights=1.0
+    )
+
+    dot_product = tf.tensordot(video_profiles, label_profiles, [[1], [1]])
+    output = tf.nn.sigmoid(dot_product)
+    return {
+        "predictions": output,
+        "regularization_loss": ae_loss
+    }
+
+
 class MoeModel(models.BaseModel):
   """A softmax over a mixture of logistic models (with L2 regularization)."""
 

@@ -78,13 +78,13 @@ if __name__ == "__main__":
       "a weight of 1).")
   flags.DEFINE_float("base_learning_rate", 0.01,
                      "Which learning rate to start with.")
-  flags.DEFINE_float("learning_rate_decay", 0.95,
+  flags.DEFINE_float("learning_rate_decay", 0.1,
                      "Learning rate decay factor to be applied every "
                      "learning_rate_decay_examples.")
   flags.DEFINE_float("learning_rate_decay_examples", 4000000,
                      "Multiply current learning rate by learning_rate_decay "
                      "every learning_rate_decay_examples.")
-  flags.DEFINE_integer("num_epochs", 5,
+  flags.DEFINE_integer("num_epochs", 10,
                        "How many passes to make over the dataset before "
                        "halting training.")
   flags.DEFINE_integer("max_steps", None,
@@ -255,7 +255,8 @@ def build_graph(reader,
 
   feature_dim = len(model_input_raw.get_shape()) - 1
 
-  model_input = tf.nn.l2_normalize(model_input_raw, feature_dim)
+  # model_input = tf.nn.l2_normalize(model_input_raw, feature_dim)
+  model_input = model_input_raw
 
   tower_inputs = tf.split(model_input, num_towers)
   tower_labels = tf.split(labels_batch, num_towers)
@@ -274,7 +275,8 @@ def build_graph(reader,
             tower_inputs[i],
             num_frames=tower_num_frames[i],
             vocab_size=reader.num_classes,
-            labels=tower_labels[i])
+            labels=tower_labels[i],
+            is_training=True)
           for variable in slim.get_model_variables():
             tf.summary.histogram(variable.op.name, variable)
 
