@@ -70,7 +70,7 @@ if __name__ == "__main__":
                        "Flag only applies if GPUs are installed")
   flags.DEFINE_integer("batch_size", 1024,
                        "How many examples to process per batch for training.")
-  flags.DEFINE_string("label_loss", "CrossEntropyLoss",
+  flags.DEFINE_string("label_loss", "CrossEntropyAndPairedHingeLoss",
                       "Which loss function to use for training the model.")
   flags.DEFINE_float(
       "regularization_penalty", 1.0,
@@ -78,7 +78,7 @@ if __name__ == "__main__":
       "a weight of 1).")
   flags.DEFINE_float("base_learning_rate", 0.01,
                      "Which learning rate to start with.")
-  flags.DEFINE_float("learning_rate_decay", 0.1,
+  flags.DEFINE_float("learning_rate_decay", 0.2,
                      "Learning rate decay factor to be applied every "
                      "learning_rate_decay_examples.")
   flags.DEFINE_float("learning_rate_decay_examples", 4000000,

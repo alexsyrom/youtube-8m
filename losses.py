@@ -37,6 +37,45 @@ class BaseLoss(object):
     raise NotImplementedError()
 
 
+class CrossEntropyAndPairedHingeLoss(BaseLoss):
+  """Calculate the cross entropy loss between the predictions and labels.
+  """
+
+  def entropy(self, predictions, labels, **unused_params):
+    with tf.name_scope("loss_xent"):
+      epsilon = 10e-6
+      float_labels = tf.cast(labels, tf.float32)
+      cross_entropy_loss = float_labels * tf.log(predictions + epsilon) + (
+          1 - float_labels) * tf.log(1 - predictions + epsilon)
+      cross_entropy_loss = tf.negative(cross_entropy_loss)
+      return tf.reduce_mean(tf.reduce_sum(cross_entropy_loss, 1))
+
+  def compute_paired(self, tensor):
+      return 0
+
+  def compute_paired_sign_labels(self, labels):
+      float_labels = tf.cast(labels, tf.float32)
+      return self.compute_paired(float_labels)
+
+  def compute_paired_predictions(self, predictions):
+      return self.compute_paired(predictions)
+
+  def hinge(self, predictions, labels, b=1.0, **unused_params):
+    with tf.name_scope("loss_hinge"):
+      float_labels = tf.cast(labels, tf.float32)
+      all_zeros = tf.zeros(tf.shape(float_labels), dtype=tf.float32)
+      all_ones = tf.ones(tf.shape(float_labels), dtype=tf.float32)
+      sign_labels = tf.subtract(tf.scalar_mul(2, float_labels), all_ones)
+      hinge_loss = tf.maximum(
+          all_zeros, tf.scalar_mul(b, all_ones) - sign_labels * predictions)
+      return tf.reduce_mean(tf.reduce_sum(hinge_loss, 1))
+
+  def calculate_loss(self, predictions, labels, **unused_params):
+    entropy = self.entropy(predictions, labels, **unused_params)
+    hinge = self.hinge(predictions, labels, b=0.5, **unused_params)
+    return entropy + hinge * 10 ** -4 
+
+
 class CrossEntropyLoss(BaseLoss):
   """Calculate the cross entropy loss between the predictions and labels.
   """

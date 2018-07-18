@@ -123,6 +123,24 @@ class TwoHiddenShortcutModel(models.BaseModel):
     return {"predictions": output}
 
 
+def gaussian_noise_layer(input_layer, std, training=False):
+  if not training:
+      return input_layer
+  noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32) 
+  return input_layer + noise
+
+
+def threshold_layer(input_layer):
+    shape = 1024 + 128
+    layer = tf.layers.dense(
+            input_layer,
+            shape,
+            activation=tf.nn.relu,
+            trainable=False,
+            kernel_initializer=tf.initializers.identity)
+    return layer
+
+
 class THSModel(models.BaseModel):
 
   def create_model(self, 
@@ -131,21 +149,37 @@ class THSModel(models.BaseModel):
           l2_penalty=1e-8, 
           is_training=False,
           **unused_params):
+    # model_input = gaussian_noise_layer(
+    #        model_input, 
+    #        0.04, 
+    #        training=is_training)
+
+    # bn_input = tf.layers.batch_normalization(
+    #        model_input,
+    #        center=False,
+    #        scale=False,
+    #        training=is_training)
+
     audio = model_input[:, -128:]
     audio = tf.nn.l2_normalize(audio, -1)
+
     video = model_input[:, :-128]
     video = tf.nn.l2_normalize(video, -1)
 
-    model_input = tf.concat([video, audio], -1)
+    model_input = tf.concat(
+            [video, audio], 
+            -1)
     net = slim.fully_connected(
-        model_input, 1024, activation_fn=tf.nn.relu,
+        model_input, 2048, activation_fn=tf.nn.relu,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
+    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
     net_list = [model_input, net]
     net_concated = tf.concat(net_list, -1)
 
     net = slim.fully_connected(
-        net_concated, 512, activation_fn=tf.nn.relu,
+        net_concated, 2048, activation_fn=tf.nn.relu,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
+    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
     net_list.append(net)
     net_concated = tf.concat(net_list, -1)
  
