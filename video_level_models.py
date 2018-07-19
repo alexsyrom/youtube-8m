@@ -145,7 +145,9 @@ class THSModel(models.BaseModel):
 
   def create_model(self, 
           model_input, 
+          num_frames,
           vocab_size, 
+          labels,
           l2_penalty=1e-8, 
           is_training=False,
           **unused_params):
@@ -183,10 +185,23 @@ class THSModel(models.BaseModel):
     net_list.append(net)
     net_concated = tf.concat(net_list, -1)
  
-    output = slim.fully_connected(
-        net_concated, vocab_size, activation_fn=tf.nn.sigmoid,
+    logits = slim.fully_connected(
+        net_concated, vocab_size, activation_fn=None,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
-    return {"predictions": output}
+    output = tf.nn.sigmoid(logits)
+
+    loss = tf.losses.sigmoid_cross_entropy(
+            labels,
+            logits,
+            reduction=tf.losses.Reduction.NONE
+    )
+    loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
+    reg_loss = tf.constant(0.0)
+    return {
+        "predictions": output,
+        "loss": loss,
+        "regularization_loss": reg_loss
+    }
 
 
 class SSModel(models.BaseModel):
