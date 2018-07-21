@@ -171,20 +171,14 @@ class THSModel(models.BaseModel):
     model_input = tf.concat(
             [video, audio], 
             -1)
-    net = slim.fully_connected(
-        model_input, 2048, activation_fn=tf.nn.relu,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
-    net_list = [model_input, net]
+
+    wide = self.wide_layer(model_input, l2_penalty)
+    shortcut = self.shortcut_layer(model_input, l2_penalty)
+    deep = self.deep_layer(model_input, l2_penalty)
+
+    net_list = [wide, shortcut, deep]
     net_concated = tf.concat(net_list, -1)
 
-    net = slim.fully_connected(
-        net_concated, 2048, activation_fn=tf.nn.relu,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
-    net_list.append(net)
-    net_concated = tf.concat(net_list, -1)
- 
     logits = slim.fully_connected(
         net_concated, vocab_size, activation_fn=None,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
@@ -202,6 +196,43 @@ class THSModel(models.BaseModel):
         "loss": loss,
         "regularization_loss": reg_loss
     }
+
+  def wide_layer(self, in_layer, l2_penalty):
+    relu = tf.nn.relu(in_layer)
+    minus_relu = tf.nn.relu(-in_layer)
+    net_list = [relu, minus_relu]
+    net_concated = tf.concat(net_list, -1)
+    return net_concated
+
+  def shortcut_layer(self, in_layer, l2_penalty):
+    net = slim.fully_connected(
+        in_layer, 1024, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+    net_list = [in_layer, net]
+    net_concated = tf.concat(net_list, -1)
+
+    net = slim.fully_connected(
+        net_concated, 1024, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+    net_list.append(net)
+    net_concated = tf.concat(net_list, -1)
+
+    return net_concated
+ 
+  def deep_layer(self, in_layer, l2_penalty):
+    net = slim.fully_connected(
+        in_layer, 1024, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+
+    net = slim.fully_connected(
+        net, 1024, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+
+    return net
 
 
 class SSModel(models.BaseModel):
