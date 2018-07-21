@@ -151,10 +151,10 @@ class THSModel(models.BaseModel):
           l2_penalty=1e-8, 
           is_training=False,
           **unused_params):
-    # model_input = gaussian_noise_layer(
-    #        model_input, 
-    #        0.04, 
-    #        training=is_training)
+    model_input = gaussian_noise_layer(
+           model_input, 
+           0.01, 
+           training=is_training)
 
     # bn_input = tf.layers.batch_normalization(
     #        model_input,
@@ -198,9 +198,10 @@ class THSModel(models.BaseModel):
     }
 
   def wide_layer(self, in_layer, l2_penalty):
-    relu = tf.nn.relu(in_layer)
-    minus_relu = tf.nn.relu(-in_layer)
-    net_list = [relu, minus_relu]
+    net_list = list()
+    for weight in [-1, 1]:
+      relu = tf.nn.relu(in_layer * weight)
+      net_list.append(relu)
     net_concated = tf.concat(net_list, -1)
     return net_concated
 
