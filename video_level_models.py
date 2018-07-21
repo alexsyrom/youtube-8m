@@ -153,7 +153,7 @@ class THSModel(models.BaseModel):
           **unused_params):
     model_input = gaussian_noise_layer(
            model_input, 
-           0.01, 
+           0.05, 
            training=is_training)
 
     # bn_input = tf.layers.batch_normalization(
