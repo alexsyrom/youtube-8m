@@ -156,7 +156,6 @@ class THSModel(models.BaseModel):
            0.05, 
            training=is_training)
 
-
     # bn_input = tf.layers.batch_normalization(
     #        model_input,
     #        center=False,
@@ -213,6 +212,10 @@ class THSModel(models.BaseModel):
       relu = tf.nn.relu(in_layer * weight)
       net_list.append(relu)
     net_concated = tf.concat(net_list, -1)
+
+    # net = slim.fully_connected(
+    #     net_concated, 1024, activation_fn=tf.nn.relu,
+    #     weights_regularizer=slim.l2_regularizer(l2_penalty))
     return net_concated
 
   def shortcut_layer(self, in_layer, l2_penalty):
@@ -230,7 +233,10 @@ class THSModel(models.BaseModel):
     net_list.append(net)
     net_concated = tf.concat(net_list, -1)
 
-    return net_concated
+    net = slim.fully_connected(
+        net_concated, 1024, activation_fn=tf.nn.relu,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    return net
  
   def deep_layer(self, in_layer, l2_penalty):
     net = slim.fully_connected(
