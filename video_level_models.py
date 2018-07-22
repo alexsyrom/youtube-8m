@@ -130,7 +130,7 @@ def gaussian_noise_layer(input_layer, std, training=False):
   return input_layer + noise
 
 
-def threshold_layer(input_layer):
+def threshold_layer(input_layer, shape):
     shape = 1024 + 128
     layer = tf.layers.dense(
             input_layer,
@@ -156,6 +156,7 @@ class THSModel(models.BaseModel):
            0.05, 
            training=is_training)
 
+
     # bn_input = tf.layers.batch_normalization(
     #        model_input,
     #        center=False,
@@ -171,6 +172,11 @@ class THSModel(models.BaseModel):
     model_input = tf.concat(
             [video, audio], 
             -1)
+
+    forgate_gate = 2 * slim.fully_connected(
+        model_input, 1024 + 128, activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    model_input = model_input * forgate_gate
 
     wide = self.wide_layer(model_input, l2_penalty)
     shortcut = self.shortcut_layer(model_input, l2_penalty)
