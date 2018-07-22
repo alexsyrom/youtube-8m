@@ -169,16 +169,12 @@ class THSModel(models.BaseModel):
     video = model_input[:, :-128]
     video = tf.nn.l2_normalize(video, -1)
 
-    model_input = tf.concat(
+    model_input_norm = tf.concat(
             [video, audio], 
             -1)
+    model_input = self.correct_input(model_input_norm, l2_penalty)
 
-    forgate_gate = 2 * slim.fully_connected(
-        model_input, 1024 + 128, activation_fn=tf.nn.sigmoid,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    model_input = model_input * forgate_gate
-
-    wide = self.wide_layer(model_input, l2_penalty)
+    wide = self.wide_layer(model_input, model_input_norm, l2_penalty)
     shortcut = self.shortcut_layer(model_input, l2_penalty)
     deep = self.deep_layer(model_input, l2_penalty)
 
@@ -203,8 +199,16 @@ class THSModel(models.BaseModel):
         "regularization_loss": reg_loss
     }
 
-  def wide_layer(self, in_layer, l2_penalty):
-    net_list = list()
+  def correct_input(self, model_input, l2_penalty):
+    shape = 1024 + 128
+    weight = 2 * slim.fully_connected(
+        model_input, shape, activation_fn=tf.nn.sigmoid,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    result = weight * model_input
+    return result 
+
+  def wide_layer(self, in_layer, in_layer2, l2_penalty):
+    net_list = [in_layer2] 
     for weight in [-1, 1]:
       relu = tf.nn.relu(in_layer * weight)
       net_list.append(relu)
