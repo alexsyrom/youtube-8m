@@ -171,7 +171,8 @@ class THSModel(models.BaseModel):
     model_input_norm = tf.concat(
             [video, audio], 
             -1)
-    model_input = self.cor_layer(model_input_norm, l2_penalty, is_training)
+    #model_input = self.cor_layer(model_input_norm, l2_penalty, is_training)
+    model_input = self.correct_input(model_input_norm, l2_penalty)
 
     wide = self.wide_layer(model_input, model_input_norm, l2_penalty)
     shortcut = self.shortcut_layer(model_input, l2_penalty)
@@ -256,36 +257,48 @@ class THSModel(models.BaseModel):
       #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
       return net
 
-  def res_block(self, in_layer, l2_penalty, is_training, shape):
-    net = slim.fully_connected(
-        in_layer, 2 * shape, activation_fn=None,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    net = tf.layers.batch_normalization(
-           net,
-           center=True,
-           scale=True,
-           training=is_training)
-    net = tf.nn.relu(net)
+  def res_block(
+          self, 
+          in_layer, 
+          l2_penalty, 
+          is_training, 
+          shape,
+          suf):
+    with tf.variable_scope("res_block_" + suf):
+      net = slim.fully_connected(
+          in_layer, shape, activation_fn=None,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      net = tf.layers.batch_normalization(
+             net,
+             center=True,
+             scale=True,
+             training=is_training)
+      net = tf.nn.relu(net)
 
-    net = slim.fully_connected(
-        net, shape, activation_fn=None,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    net = tf.layers.batch_normalization(
-           net,
-           center=True,
-           scale=True,
-           training=is_training)
+      net = slim.fully_connected(
+          net, shape, activation_fn=None,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      net = tf.layers.batch_normalization(
+             net,
+             center=True,
+             scale=True,
+             training=is_training)
 
-    net = net + in_layer
-    net = tf.nn.relu(net)
-    return net
+      net = net + in_layer
+      net = tf.nn.relu(net)
+      return net
 
   def res_layer(self, in_layer, l2_penalty, is_training):
     with tf.variable_scope("res_layer"):
       shape = 1024 + 128
       net = in_layer
       for i in range(2):
-        net = self.res_block(net, l2_penalty, is_training, shape)
+        net = self.res_block(
+                net, 
+                l2_penalty, 
+                is_training, 
+                shape, 
+                str(i))
       return net
 
   def cor_block(self, in_layer, l2_penalty, is_training, shape):
