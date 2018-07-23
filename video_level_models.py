@@ -258,7 +258,7 @@ class THSModel(models.BaseModel):
 
   def res_block(self, in_layer, l2_penalty, is_training, shape):
     net = slim.fully_connected(
-        in_layer, shape, activation_fn=None,
+        in_layer, 2 * shape, activation_fn=None,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     net = tf.layers.batch_normalization(
            net,
