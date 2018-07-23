@@ -171,7 +171,7 @@ class THSModel(models.BaseModel):
     model_input_norm = tf.concat(
             [video, audio], 
             -1)
-    model_input = self.correct_input(model_input_norm, l2_penalty)
+    model_input = self.cor_layer(model_input_norm, l2_penalty, is_training)
 
     wide = self.wide_layer(model_input, model_input_norm, l2_penalty)
     shortcut = self.shortcut_layer(model_input, l2_penalty)
@@ -186,7 +186,7 @@ class THSModel(models.BaseModel):
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     output = tf.nn.sigmoid(logits)
 
-    with tf.name_scope("loss_xent"):
+    with tf.variable_scope("loss_xent"):
       loss = tf.losses.sigmoid_cross_entropy(
               labels,
               logits,
@@ -201,7 +201,7 @@ class THSModel(models.BaseModel):
     }
 
   def correct_input(self, model_input, l2_penalty):
-    with tf.name_scope("correct_input"):
+    with tf.variable_scope("correct_input"):
       shape = 1024 + 128
       weight = 2 * slim.fully_connected(
           model_input, shape, activation_fn=tf.nn.sigmoid,
@@ -210,7 +210,7 @@ class THSModel(models.BaseModel):
       return result 
 
   def wide_layer(self, in_layer, in_layer2, l2_penalty):
-    with tf.name_scope("wide_layer"):
+    with tf.variable_scope("wide_layer"):
       net_list = [in_layer2] 
       for weight in [-1, 1]:
         relu = tf.nn.relu(in_layer * weight)
@@ -223,7 +223,7 @@ class THSModel(models.BaseModel):
       return net_concated
 
   def shortcut_layer(self, in_layer, l2_penalty):
-    with tf.name_scope("shortcut_layer"):
+    with tf.variable_scope("shortcut_layer"):
       net = slim.fully_connected(
           in_layer, 1024, activation_fn=tf.nn.relu,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
@@ -244,7 +244,7 @@ class THSModel(models.BaseModel):
       return net
  
   def deep_layer(self, in_layer, l2_penalty):
-    with tf.name_scope("deep_layer"):
+    with tf.variable_scope("deep_layer"):
       net = slim.fully_connected(
           in_layer, 1024, activation_fn=tf.nn.relu,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
@@ -262,8 +262,8 @@ class THSModel(models.BaseModel):
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     net = tf.layers.batch_normalization(
            net,
-           center=False,
-           scale=False,
+           center=True,
+           scale=True,
            training=is_training)
     net = tf.nn.relu(net)
 
@@ -272,8 +272,8 @@ class THSModel(models.BaseModel):
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     net = tf.layers.batch_normalization(
            net,
-           center=False,
-           scale=False,
+           center=True,
+           scale=True,
            training=is_training)
 
     net = net + in_layer
@@ -281,7 +281,7 @@ class THSModel(models.BaseModel):
     return net
 
   def res_layer(self, in_layer, l2_penalty, is_training):
-    with tf.name_scope("res_layer"):
+    with tf.variable_scope("res_layer"):
       shape = 1024 + 128
       net = in_layer
       for i in range(2):
@@ -299,10 +299,10 @@ class THSModel(models.BaseModel):
     return result 
 
   def cor_layer(self, in_layer, l2_penalty, is_training):
-    with tf.name_scope("cor_layer"):
+    with tf.variable_scope("cor_layer"):
       shape = 1024 + 128
       net = in_layer
-      for i in range(2):
+      for i in range(1):
         net = self.cor_block(net, l2_penalty, is_training, shape)
       return net
 
