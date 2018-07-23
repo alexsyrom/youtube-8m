@@ -186,12 +186,13 @@ class THSModel(models.BaseModel):
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     output = tf.nn.sigmoid(logits)
 
-    loss = tf.losses.sigmoid_cross_entropy(
-            labels,
-            logits,
-            reduction=tf.losses.Reduction.NONE
-    )
-    loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
+    with tf.name_scope("loss_xent"):
+      loss = tf.losses.sigmoid_cross_entropy(
+              labels,
+              logits,
+              reduction=tf.losses.Reduction.NONE
+      )
+      loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
     reg_loss = tf.constant(0.0)
     return {
         "predictions": output,
@@ -200,81 +201,110 @@ class THSModel(models.BaseModel):
     }
 
   def correct_input(self, model_input, l2_penalty):
-    shape = 1024 + 128
-    weight = 2 * slim.fully_connected(
-        model_input, shape, activation_fn=tf.nn.sigmoid,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    result = weight * model_input
-    return result 
+    with tf.name_scope("correct_input"):
+      shape = 1024 + 128
+      weight = 2 * slim.fully_connected(
+          model_input, shape, activation_fn=tf.nn.sigmoid,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      result = weight * model_input
+      return result 
 
   def wide_layer(self, in_layer, in_layer2, l2_penalty):
-    net_list = [in_layer2] 
-    for weight in [-1, 1]:
-      relu = tf.nn.relu(in_layer * weight)
-      net_list.append(relu)
-    net_concated = tf.concat(net_list, -1)
+    with tf.name_scope("wide_layer"):
+      net_list = [in_layer2] 
+      for weight in [-1, 1]:
+        relu = tf.nn.relu(in_layer * weight)
+        net_list.append(relu)
+      net_concated = tf.concat(net_list, -1)
 
-    # net = slim.fully_connected(
-    #     net_concated, 1024, activation_fn=tf.nn.relu,
-    #     weights_regularizer=slim.l2_regularizer(l2_penalty))
-    return net_concated
+      # net = slim.fully_connected(
+      #     net_concated, 1024, activation_fn=tf.nn.relu,
+      #     weights_regularizer=slim.l2_regularizer(l2_penalty))
+      return net_concated
 
   def shortcut_layer(self, in_layer, l2_penalty):
-    net = slim.fully_connected(
-        in_layer, 1024, activation_fn=tf.nn.relu,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
-    net_list = [in_layer, net]
-    net_concated = tf.concat(net_list, -1)
+    with tf.name_scope("shortcut_layer"):
+      net = slim.fully_connected(
+          in_layer, 1024, activation_fn=tf.nn.relu,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+      net_list = [in_layer, net]
+      net_concated = tf.concat(net_list, -1)
 
-    net = slim.fully_connected(
-        net_concated, 1024, activation_fn=tf.nn.relu,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
-    net_list.append(net)
-    net_concated = tf.concat(net_list, -1)
+      net = slim.fully_connected(
+          net_concated, 1024, activation_fn=tf.nn.relu,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+      net_list.append(net)
+      net_concated = tf.concat(net_list, -1)
 
-    net = slim.fully_connected(
-        net_concated, 1024, activation_fn=tf.nn.relu,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    return net
+      net = slim.fully_connected(
+          net_concated, 1024, activation_fn=tf.nn.relu,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      return net
  
   def deep_layer(self, in_layer, l2_penalty):
+    with tf.name_scope("deep_layer"):
+      net = slim.fully_connected(
+          in_layer, 1024, activation_fn=tf.nn.relu,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+
+      net = slim.fully_connected(
+          net, 1024, activation_fn=tf.nn.relu,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+      return net
+
+  def res_block(self, in_layer, l2_penalty, is_training, shape):
     net = slim.fully_connected(
-        in_layer, 1024, activation_fn=tf.nn.relu,
+        in_layer, shape, activation_fn=None,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
-    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+    net = tf.layers.batch_normalization(
+           net,
+           center=False,
+           scale=False,
+           training=is_training)
+    net = tf.nn.relu(net)
 
     net = slim.fully_connected(
-        net, 1024, activation_fn=tf.nn.relu,
+        net, shape, activation_fn=None,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
-    #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+    net = tf.layers.batch_normalization(
+           net,
+           center=False,
+           scale=False,
+           training=is_training)
 
+    net = net + in_layer
+    net = tf.nn.relu(net)
     return net
 
   def res_layer(self, in_layer, l2_penalty, is_training):
-    shape = 1024 + 128
+    with tf.name_scope("res_layer"):
+      shape = 1024 + 128
+      net = in_layer
+      for i in range(2):
+        net = self.res_block(net, l2_penalty, is_training, shape)
+      return net
 
-    net = slim.fully_connected(
-        in_layer, shape, activation_fn=tf.nn.relu,
+  def cor_block(self, in_layer, l2_penalty, is_training, shape):
+    weight = 2 * slim.fully_connected(
+        in_layer, shape, activation_fn=tf.nn.sigmoid,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
-    bn_net = tf.layers.batch_normalization(
-           net,
-           center=True,
-           scale=True,
-           training=is_training)
-
-    net = slim.fully_connected(
-        bn_net, shape, activation_fn=tf.nn.relu,
+    bias = 0.1 * slim.fully_connected(
+        in_layer, shape, activation_fn=tf.nn.tanh,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
-    bn_net = tf.layers.batch_normalization(
-           net,
-           center=True,
-           scale=True,
-           training=is_training)
+    result = weight * in_layer + bias
+    return result 
 
-    net = bn_net + in_layer
-    return net
+  def cor_layer(self, in_layer, l2_penalty, is_training):
+    with tf.name_scope("cor_layer"):
+      shape = 1024 + 128
+      net = in_layer
+      for i in range(2):
+        net = self.cor_block(net, l2_penalty, is_training, shape)
+      return net
 
 
 class SSModel(models.BaseModel):
