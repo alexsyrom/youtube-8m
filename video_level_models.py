@@ -263,6 +263,14 @@ class THSModel(models.BaseModel):
       #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
       return net
 
+  def res_bn(self, net, training, l2_penalty):
+    bn_layer = tf.layers.BatchNormalization(
+           beta_regularizer=slim.l2_regularizer(l2_penalty),
+           gamma_regularizer=slim.l2_regularizer(l2_penalty),
+           center=True,
+           scale=True)
+    return bn_layer.apply(net, training=training)
+
   def res_block(
           self, 
           in_layer, 
@@ -272,30 +280,18 @@ class THSModel(models.BaseModel):
           suf):
     with tf.variable_scope("res_block_" + suf):
       net = slim.fully_connected(
-          in_layer, 1 * shape, activation_fn=None,
+          in_layer, shape, activation_fn=None,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
-      net = tf.layers.batch_normalization(
-             net,
-             center=True,
-             scale=True,
-             training=is_training)
+      net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
       net = tf.nn.relu(net)
 
       net = slim.fully_connected(
           net, shape, activation_fn=None,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
-      net = tf.layers.batch_normalization(
-             net,
-             center=True,
-             scale=True,
-             training=is_training)
+      net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
 
       net = net + in_layer
-      net = tf.layers.batch_normalization(
-             net,
-             center=True,
-             scale=True,
-             training=is_training)
+      net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
       net = tf.nn.relu(net)
       return net
 
