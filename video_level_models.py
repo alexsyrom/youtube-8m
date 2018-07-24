@@ -182,10 +182,10 @@ class THSModel(models.BaseModel):
             model_input_norm, 
             l2_penalty)
     shortcut = self.shortcut_layer(model_input, l2_penalty)
-    deep = self.deep_layer(model_input, l2_penalty)
+    #deep = self.deep_layer(model_input, l2_penalty)
     res = self.res_layer(model_input, l2_penalty, is_training)
 
-    net_list = [wide, shortcut, deep, res]
+    net_list = [wide, shortcut, res]
     net_concated = tf.concat(net_list, -1)
 
     logits = slim.fully_connected(
@@ -253,7 +253,7 @@ class THSModel(models.BaseModel):
   def deep_layer(self, in_layer, l2_penalty):
     with tf.variable_scope("deep_layer"):
       net = slim.fully_connected(
-          in_layer, 1 * 1024, activation_fn=tf.nn.relu,
+          in_layer, 1024, activation_fn=tf.nn.relu,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
 
@@ -291,6 +291,11 @@ class THSModel(models.BaseModel):
              training=is_training)
 
       net = net + in_layer
+      net = tf.layers.batch_normalization(
+             net,
+             center=True,
+             scale=True,
+             training=is_training)
       net = tf.nn.relu(net)
       return net
 
