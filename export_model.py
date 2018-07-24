@@ -89,7 +89,8 @@ class ModelExporter(object):
         self.reader.prepare_serialized_examples(serialized_examples))
 
     feature_dim = len(model_input_raw.get_shape()) - 1
-    model_input = tf.nn.l2_normalize(model_input_raw, feature_dim)
+    # model_input = tf.nn.l2_normalize(model_input_raw, feature_dim)
+    model_input = model_input_raw
 
     with tf.variable_scope("tower"):
       result = self.model.create_model(

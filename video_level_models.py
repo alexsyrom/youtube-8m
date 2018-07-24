@@ -162,19 +162,25 @@ class THSModel(models.BaseModel):
     #        scale=False,
     #        training=is_training)
 
-    audio = model_input[:, -128:]
-    audio = tf.nn.l2_normalize(audio, -1)
+    if model_input.shape.ndims == 2:
+      audio = model_input[:, -128:]
+      video = model_input[:, :-128]
+    else:
+      audio = model_input[:, :, -128:]
+      video = model_input[:, :, :-128]
 
-    video = model_input[:, :-128]
+    audio = tf.nn.l2_normalize(audio, -1)
     video = tf.nn.l2_normalize(video, -1)
 
     model_input_norm = tf.concat(
             [video, audio], 
             -1)
-    #model_input = self.cor_layer(model_input_norm, l2_penalty, is_training)
-    model_input = self.correct_input(model_input_norm, l2_penalty)
+    model_input = self.cor_layer(model_input_norm, l2_penalty, is_training)
 
-    wide = self.wide_layer(model_input, model_input_norm, l2_penalty)
+    wide = self.wide_layer(
+            model_input, 
+            model_input_norm, 
+            l2_penalty)
     shortcut = self.shortcut_layer(model_input, l2_penalty)
     deep = self.deep_layer(model_input, l2_penalty)
     res = self.res_layer(model_input, l2_penalty, is_training)
@@ -247,7 +253,7 @@ class THSModel(models.BaseModel):
   def deep_layer(self, in_layer, l2_penalty):
     with tf.variable_scope("deep_layer"):
       net = slim.fully_connected(
-          in_layer, 1024, activation_fn=tf.nn.relu,
+          in_layer, 1 * 1024, activation_fn=tf.nn.relu,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
 
@@ -266,7 +272,7 @@ class THSModel(models.BaseModel):
           suf):
     with tf.variable_scope("res_block_" + suf):
       net = slim.fully_connected(
-          in_layer, shape, activation_fn=None,
+          in_layer, 1 * shape, activation_fn=None,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       net = tf.layers.batch_normalization(
              net,
