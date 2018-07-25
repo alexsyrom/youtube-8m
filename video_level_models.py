@@ -300,7 +300,7 @@ class THSModel(models.BaseModel):
   def res_layer(self, in_layer, l2_penalty, is_training):
     with tf.variable_scope("res_layer"):
       shape = 1024 + 128
-      net = tf.nn.relu(in_layer)
+      net = in_layer
       for i in range(2):
         net = self.res_block(
                 net, 
