@@ -278,9 +278,11 @@ class THSModel(models.BaseModel):
           is_training, 
           shape,
           suf):
+    net = in_layer
     with tf.variable_scope("res_block_" + suf):
       net = slim.fully_connected(
-          in_layer, shape, activation_fn=None,
+          net, shape, activation_fn=None,
+          biases_initializer=None,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
       net = tf.nn.relu(net)
@@ -291,7 +293,6 @@ class THSModel(models.BaseModel):
       net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
 
       net = net + in_layer
-      net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
       net = tf.nn.relu(net)
       return net
 
