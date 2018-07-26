@@ -289,6 +289,7 @@ class THSModel(models.BaseModel):
 
       net = slim.fully_connected(
           net, shape, activation_fn=None,
+          biases_initializer=None,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
 
@@ -302,6 +303,7 @@ class THSModel(models.BaseModel):
       shape = 1024 + 128
       net = in_layer
       net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
+      net = tf.nn.relu(net)
       for i in range(2):
         net = self.res_block(
                 net, 
