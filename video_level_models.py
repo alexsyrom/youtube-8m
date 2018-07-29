@@ -150,6 +150,8 @@ class THSModel(models.BaseModel):
           labels,
           l2_penalty=1e-8, 
           is_training=False,
+          trainable=False,
+          compute_loss=False,
           **unused_params):
     model_input = gaussian_noise_layer(
            model_input, 
@@ -161,7 +163,8 @@ class THSModel(models.BaseModel):
     #        center=False,
     #        scale=False,
     #        training=is_training)
-
+    print(is_training)
+    print(trainable)
     if model_input.shape.ndims == 2:
       audio = model_input[:, -128:]
       video = model_input[:, :-128]
@@ -175,43 +178,51 @@ class THSModel(models.BaseModel):
     model_input_norm = tf.concat(
             [video, audio], 
             -1)
-    model_input = self.cor_layer(model_input_norm, l2_penalty, is_training)
+    model_input = self.cor_layer(
+            model_input_norm, l2_penalty, is_training, trainable)
 
     wide = self.wide_layer(
             model_input, 
             model_input_norm, 
             l2_penalty)
-    shortcut = self.shortcut_layer(model_input, l2_penalty)
+    shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
     #deep = self.deep_layer(model_input, l2_penalty)
-    res = self.res_layer(model_input, l2_penalty, is_training)
+    res = self.res_layer(model_input, l2_penalty, is_training, trainable)
 
     net_list = [wide, shortcut, res]
     net_concated = tf.concat(net_list, -1)
 
     logits = slim.fully_connected(
         net_concated, vocab_size, activation_fn=None,
+        trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     output = tf.nn.sigmoid(logits)
 
-    with tf.variable_scope("loss_xent"):
-      loss = tf.losses.sigmoid_cross_entropy(
-              labels,
-              logits,
-              reduction=tf.losses.Reduction.NONE
-      )
-      loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
-    reg_loss = tf.constant(0.0)
+    if compute_loss:
+        with tf.variable_scope("loss_xent"):
+          loss = tf.losses.sigmoid_cross_entropy(
+                  labels,
+                  logits,
+                  reduction=tf.losses.Reduction.NONE
+          )
+          loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
+        reg_loss = tf.constant(0.0)
+    else:
+        loss = None
+        reg_loss = None
     return {
+        "logits": logits,
         "predictions": output,
         "loss": loss,
         "regularization_loss": reg_loss
     }
 
-  def correct_input(self, model_input, l2_penalty):
+  def correct_input(self, model_input, l2_penalty, trainable):
     with tf.variable_scope("correct_input"):
       shape = 1024 + 128
       weight = 2 * slim.fully_connected(
           model_input, shape, activation_fn=tf.nn.sigmoid,
+          trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       result = weight * model_input
       return result 
@@ -229,10 +240,11 @@ class THSModel(models.BaseModel):
       #     weights_regularizer=slim.l2_regularizer(l2_penalty))
       return net_concated
 
-  def shortcut_layer(self, in_layer, l2_penalty):
+  def shortcut_layer(self, in_layer, l2_penalty, trainable):
     with tf.variable_scope("shortcut_layer"):
       net = slim.fully_connected(
           in_layer, 1024, activation_fn=tf.nn.relu,
+          trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
       net_list = [in_layer, net]
@@ -240,6 +252,7 @@ class THSModel(models.BaseModel):
 
       net = slim.fully_connected(
           net_concated, 1024, activation_fn=tf.nn.relu,
+          trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
       net_list.append(net)
@@ -247,26 +260,30 @@ class THSModel(models.BaseModel):
 
       net = slim.fully_connected(
           net_concated, 1024, activation_fn=tf.nn.relu,
+          trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       return net
  
-  def deep_layer(self, in_layer, l2_penalty):
+  def deep_layer(self, in_layer, l2_penalty, trainable):
     with tf.variable_scope("deep_layer"):
       net = slim.fully_connected(
           in_layer, 1024, activation_fn=tf.nn.relu,
+          trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
 
       net = slim.fully_connected(
           net, 1024, activation_fn=tf.nn.relu,
+          trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
       return net
 
-  def res_bn(self, net, training, l2_penalty):
+  def res_bn(self, net, training, l2_penalty, trainable):
     bn_layer = tf.layers.BatchNormalization(
            beta_regularizer=slim.l2_regularizer(l2_penalty),
            gamma_regularizer=slim.l2_regularizer(l2_penalty),
+           trainable=trainable,
            center=True,
            scale=True)
     return bn_layer.apply(net, training=training)
@@ -277,58 +294,71 @@ class THSModel(models.BaseModel):
           l2_penalty, 
           is_training, 
           shape,
-          suf):
+          suf,
+          trainable):
     net = in_layer
     with tf.variable_scope("res_block_" + suf):
       net = slim.fully_connected(
           net, shape, activation_fn=None,
+          trainable=trainable,
           biases_initializer=None,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
-      net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
+      net = self.res_bn(
+              net, training=is_training,
+              trainable=trainable,
+              l2_penalty=l2_penalty)
       net = tf.nn.relu(net)
 
       net = slim.fully_connected(
           net, shape, activation_fn=None,
+          trainable=trainable,
           biases_initializer=None,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
-      net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
+      net = self.res_bn(
+              net, training=is_training, 
+              trainable=trainable,
+              l2_penalty=l2_penalty)
 
       net = net + in_layer
-      net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
+      net = self.res_bn(
+              net, training=is_training, 
+              trainable=trainable,
+              l2_penalty=l2_penalty)
       net = tf.nn.relu(net)
       return net
 
-  def res_layer(self, in_layer, l2_penalty, is_training):
+  def res_layer(self, in_layer, l2_penalty, is_training, trainable):
     with tf.variable_scope("res_layer"):
       shape = 1024 + 128
       net = in_layer
-      net = self.res_bn(net, training=is_training, l2_penalty=l2_penalty)
-      net = tf.nn.relu(net)
       for i in range(2):
         net = self.res_block(
                 net, 
                 l2_penalty, 
                 is_training, 
                 shape, 
-                str(i))
+                str(i),
+                trainable)
       return net
 
-  def cor_block(self, in_layer, l2_penalty, is_training, shape):
+  def cor_block(self, in_layer, l2_penalty, is_training, shape, trainable):
     weight = 2 * slim.fully_connected(
         in_layer, shape, activation_fn=tf.nn.sigmoid,
+        trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     bias = 0.1 * slim.fully_connected(
         in_layer, shape, activation_fn=tf.nn.tanh,
+        trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     result = weight * in_layer + bias
     return result 
 
-  def cor_layer(self, in_layer, l2_penalty, is_training):
+  def cor_layer(self, in_layer, l2_penalty, is_training, trainable):
     with tf.variable_scope("cor_layer"):
       shape = 1024 + 128
       net = in_layer
       for i in range(1):
-        net = self.cor_block(net, l2_penalty, is_training, shape)
+        net = self.cor_block(net, l2_penalty, is_training, shape, trainable)
       return net
 
 

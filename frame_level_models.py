@@ -40,12 +40,12 @@ flags.DEFINE_integer("dbof_hidden_size", 1024,
 flags.DEFINE_string("dbof_pooling_method", "max",
                     "The pooling method used in the DBoF cluster layer. "
                     "Choices are 'average' and 'max'.")
-flags.DEFINE_string("video_level_classifier_model", "MoeModel",
+flags.DEFINE_string("video_level_classifier_model", "THSModel",
                     "Some Frame-Level models can be decomposed into a "
                     "generalized pooling operation followed by a "
                     "classifier layer")
 flags.DEFINE_integer("lstm_cells", 1024 + 128, "Number of LSTM cells.")
-flags.DEFINE_integer("lstm_layers", 2, "Number of LSTM layers.")
+flags.DEFINE_integer("lstm_layers", 1, "Number of LSTM layers.")
 
 class FrameLevelLogisticModel(models.BaseModel):
 
@@ -196,7 +196,15 @@ class DbofModel(models.BaseModel):
 
 class LstmModel(models.BaseModel):
 
-  def create_model(self, model_input, vocab_size, num_frames, **unused_params):
+  def create_model(self, 
+          model_input, 
+          num_frames,
+          vocab_size, 
+          labels,
+          l2_penalty=1e-8, 
+          is_training=False,
+          **unused_params):
+ 
     """Creates a model which uses a stack of LSTMs to represent the video.
 
     Args:
@@ -221,16 +229,18 @@ class LstmModel(models.BaseModel):
                 for _ in range(number_of_layers)
                 ])
 
-    loss = 0.0
-
     outputs, state = tf.nn.dynamic_rnn(stacked_lstm, model_input,
                                        sequence_length=num_frames,
+                                       parallel_iterations=2,
                                        dtype=tf.float32)
-
+    
     aggregated_model = getattr(video_level_models,
                                FLAGS.video_level_classifier_model)
-
     return aggregated_model().create_model(
         model_input=state[-1].h,
+        num_frames=num_frames,
+        labels=labels,
+        l2_penalty=l2_penalty,
+        is_training=is_training,
         vocab_size=vocab_size,
-        **unused_params)
+       **unused_params)
