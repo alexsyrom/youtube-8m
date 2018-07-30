@@ -5,3 +5,4 @@ Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.512 | GAP: 0.853 | Avg_Loss: 3.90135
 Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.511 | GAP: 0.853 | Avg_Loss: 3.915867 | bn before block
 Avg_Hit@1: 0.880 | Avg_PERR: 0.792 | MAP: 0.508 | GAP: 0.851 | Avg_Loss: 3.953528 | bn and relu before block
 Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.511 | GAP: 0.853 | Avg_Loss: 3.905983 | 10 epoches
+Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.512 | GAP: 0.853 | Avg_Loss: 3.902673 | 5 epoches
