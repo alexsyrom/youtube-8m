@@ -244,3 +244,67 @@ class LstmModel(models.BaseModel):
         is_training=is_training,
         vocab_size=vocab_size,
        **unused_params)
+
+
+class GruModel(models.BaseModel):
+
+  def create_model(self, 
+          model_input, 
+          num_frames,
+          vocab_size, 
+          labels,
+          l2_penalty=1e-8, 
+          is_training=False,
+          trainable=False,
+          compute_loss=False,
+          **unused_params):
+
+    if model_input.shape.ndims == 2:
+      audio = model_input[:, -128:]
+      video = model_input[:, :-128]
+    else:
+      audio = model_input[:, :, -128:]
+      video = model_input[:, :, :-128]
+    audio = tf.nn.l2_normalize(audio, -1)
+    video = tf.nn.l2_normalize(video, -1)
+    model_input_norm = tf.concat( [video, audio], 
+            -1)
+ 
+    gru_size = 2048
+    number_of_layers = 2
+
+    gru_list = [tf.contrib.rnn.GRUCell(gru_size)
+                for _ in range(number_of_layers)]
+    stacked_gru = tf.contrib.rnn.MultiRNNCell(gru_list)
+
+    outputs, state = tf.nn.dynamic_rnn(stacked_gru, model_input_norm,
+                                       sequence_length=num_frames,
+                                       parallel_iterations=8,
+                                       dtype=tf.float32)
+    logits = slim.fully_connected(
+        state[-1], vocab_size, activation_fn=None,
+        trainable=trainable,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    output = tf.nn.sigmoid(logits)
+
+    if compute_loss:
+        with tf.variable_scope("loss_xent"):
+          loss = tf.losses.sigmoid_cross_entropy(
+                  labels=labels,
+                  logits=logits,
+                  reduction=tf.losses.Reduction.NONE
+          )
+          loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
+        with tf.variable_scope("reg_loss_xent"):
+            reg_loss = tf.constant(0.0)
+    else:
+        loss = None
+        reg_loss = None
+ 
+    return {
+        "logits": logits,
+        "predictions": output,
+        "loss": loss,
+        "regularization_loss": reg_loss
+    }
+

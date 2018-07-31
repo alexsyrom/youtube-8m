@@ -165,19 +165,19 @@ class THSModel(models.BaseModel):
     #        training=is_training)
     print(is_training)
     print(trainable)
-    if model_input.shape.ndims == 2:
-      audio = model_input[:, -128:]
-      video = model_input[:, :-128]
-    else:
-      audio = model_input[:, :, -128:]
-      video = model_input[:, :, :-128]
-
-    audio = tf.nn.l2_normalize(audio, -1)
-    video = tf.nn.l2_normalize(video, -1)
-
-    model_input_norm = tf.concat(
-            [video, audio], 
-            -1)
+    model_input_norm = tf.nn.l2_normalize(model_input, -1)
+    #if model_input.shape.ndims == 2:
+    #  audio = model_input[:, -128:]
+    #  video = model_input[:, :-128]
+    #else:
+    #  audio = model_input[:, :, -128:]
+    #  video = model_input[:, :, :-128]
+#
+#    audio = tf.nn.l2_normalize(audio, -1)
+#    video = tf.nn.l2_normalize(video, -1)
+#
+#    model_input_norm = tf.concat( [video, audio], 
+#            -1)
     model_input = self.cor_layer(
             model_input_norm, l2_penalty, is_training, trainable)
 
