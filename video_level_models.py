@@ -165,19 +165,19 @@ class THSModel(models.BaseModel):
     #        training=is_training)
     print(is_training)
     print(trainable)
-    model_input_norm = tf.nn.l2_normalize(model_input, -1)
-    #if model_input.shape.ndims == 2:
-    #  audio = model_input[:, -128:]
-    #  video = model_input[:, :-128]
-    #else:
-    #  audio = model_input[:, :, -128:]
-    #  video = model_input[:, :, :-128]
-#
-#    audio = tf.nn.l2_normalize(audio, -1)
-#    video = tf.nn.l2_normalize(video, -1)
-#
-#    model_input_norm = tf.concat( [video, audio], 
-#            -1)
+    if model_input.shape.ndims == 2:
+      audio = model_input[:, -128:]
+      video = model_input[:, :-128]
+    else:
+      audio = model_input[:, :, -128:]
+      video = model_input[:, :, :-128]
+
+    audio = tf.nn.l2_normalize(audio, -1)
+    video = tf.nn.l2_normalize(video, -1)
+
+    model_input_norm = tf.concat(
+            [video, audio], 
+            -1)
     model_input = self.cor_layer(
             model_input_norm, l2_penalty, is_training, trainable)
 
@@ -188,8 +188,9 @@ class THSModel(models.BaseModel):
     shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
     #deep = self.deep_layer(model_input, l2_penalty)
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
+    r = self.r_layer(model_input, l2_penalty, is_training, trainable)
 
-    net_list = [wide, shortcut, res]
+    net_list = [wide, shortcut, res, r]
     net_concated = tf.concat(net_list, -1)
 
     logits = slim.fully_connected(
@@ -359,6 +360,55 @@ class THSModel(models.BaseModel):
       net = in_layer
       for i in range(1):
         net = self.cor_block(net, l2_penalty, is_training, shape, trainable)
+      return net
+
+  def r_block(
+          self, 
+          in_layer, 
+          second_layer,
+          l2_penalty, 
+          is_training, 
+          shape,
+          suf,
+          trainable):
+    net = second_layer
+    with tf.variable_scope("r_block_" + suf):
+      net = tf.concat([in_layer, net], -1)
+      net = self.res_bn(
+              net, training=is_training,
+              trainable=trainable,
+              l2_penalty=l2_penalty)
+      net = tf.nn.relu(net)
+
+      net = slim.fully_connected(
+          net, shape, activation_fn=None,
+          trainable=trainable,
+          biases_initializer=None,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+
+      net = self.res_bn(
+              net, training=is_training, 
+              trainable=trainable,
+              l2_penalty=l2_penalty)
+      net = tf.nn.relu(net)
+      return net
+
+  def r_layer(self, in_layer, l2_penalty, is_training, trainable):
+    with tf.variable_scope("r_layer"):
+      shape = 1024
+      net = slim.fully_connected(
+          in_layer, shape, activation_fn=tf.nn.relu,
+          trainable=trainable,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      for i in range(2):
+        net = self.r_block(
+                in_layer,
+                net, 
+                l2_penalty, 
+                is_training, 
+                shape, 
+                str(i),
+                trainable)
       return net
 
 
