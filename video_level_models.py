@@ -245,14 +245,17 @@ class THSModel(models.BaseModel):
   def shortcut_layer(self, in_layer, l2_penalty, trainable):
     with tf.variable_scope("shortcut_layer"):
       net = in_layer
+      net_list = list()
       for i in range(3):
         net = slim.fully_connected(
             net, 1024, activation_fn=tf.nn.relu,
             trainable=trainable,
             weights_regularizer=slim.l2_regularizer(l2_penalty))
         #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
-        net_list = [in_layer, net]
-        net = tf.concat(net_list, -1)
+        net_list.append(net)
+        to_concat = net_list[-2:]
+        to_concat.append(in_layer)
+        net = tf.concat(to_concat, -1)
 
       net = slim.fully_connected(
           net, 1024, activation_fn=tf.nn.relu,
