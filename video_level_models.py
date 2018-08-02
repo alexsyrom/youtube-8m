@@ -152,11 +152,13 @@ class THSModel(models.BaseModel):
           is_training=False,
           trainable=False,
           compute_loss=False,
+          augment=True,
           **unused_params):
-    model_input = gaussian_noise_layer(
-           model_input, 
-           0.05, 
-           training=is_training)
+    if augment:
+      model_input = gaussian_noise_layer(
+             model_input, 
+             0.05, 
+             training=is_training)
 
     # bn_input = tf.layers.batch_normalization(
     #        model_input,
@@ -242,24 +244,18 @@ class THSModel(models.BaseModel):
 
   def shortcut_layer(self, in_layer, l2_penalty, trainable):
     with tf.variable_scope("shortcut_layer"):
-      net = slim.fully_connected(
-          in_layer, 1024, activation_fn=tf.nn.relu,
-          trainable=trainable,
-          weights_regularizer=slim.l2_regularizer(l2_penalty))
-      #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
-      net_list = [in_layer, net]
-      net_concated = tf.concat(net_list, -1)
+      net = in_layer
+      for i in range(3):
+        net = slim.fully_connected(
+            net, 1024, activation_fn=tf.nn.relu,
+            trainable=trainable,
+            weights_regularizer=slim.l2_regularizer(l2_penalty))
+        #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+        net_list = [in_layer, net]
+        net = tf.concat(net_list, -1)
 
       net = slim.fully_connected(
-          net_concated, 1024, activation_fn=tf.nn.relu,
-          trainable=trainable,
-          weights_regularizer=slim.l2_regularizer(l2_penalty))
-      #net = tf.layers.dropout(net, rate=0.1, training=is_training) 
-      net_list.append(net)
-      net_concated = tf.concat(net_list, -1)
-
-      net = slim.fully_connected(
-          net_concated, 1024, activation_fn=tf.nn.relu,
+          net, 1024, activation_fn=tf.nn.relu,
           trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       return net

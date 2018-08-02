@@ -246,7 +246,7 @@ class LstmModel(models.BaseModel):
        **unused_params)
 
 
-class GruModel(models.BaseModel):
+class WeightModel(models.BaseModel):
 
   def create_model(self, 
           model_input, 
@@ -258,53 +258,37 @@ class GruModel(models.BaseModel):
           trainable=False,
           compute_loss=False,
           **unused_params):
-
-    if model_input.shape.ndims == 2:
-      audio = model_input[:, -128:]
-      video = model_input[:, :-128]
-    else:
-      audio = model_input[:, :, -128:]
-      video = model_input[:, :, :-128]
-    audio = tf.nn.l2_normalize(audio, -1)
-    video = tf.nn.l2_normalize(video, -1)
-    model_input_norm = tf.concat( [video, audio], 
-            -1)
- 
-    gru_size = 2048
-    number_of_layers = 2
-
-    gru_list = [tf.contrib.rnn.GRUCell(gru_size)
-                for _ in range(number_of_layers)]
-    stacked_gru = tf.contrib.rnn.MultiRNNCell(gru_list)
-
-    outputs, state = tf.nn.dynamic_rnn(stacked_gru, model_input_norm,
-                                       sequence_length=num_frames,
-                                       parallel_iterations=8,
-                                       dtype=tf.float32)
-    logits = slim.fully_connected(
-        state[-1], vocab_size, activation_fn=None,
+    with tf.variable_scope("frame"):
+      num_frames = tf.cast(tf.expand_dims(num_frames, 1), tf.float32)
+      feature_size = model_input.get_shape().as_list()[2]
+      denominators = tf.reshape(
+          tf.tile(num_frames, [1, feature_size]), [-1, feature_size])
+      if is_training:
+          weights = tf.random_uniform(
+                  shape=tf.shape(model_input), 
+                  minval=0.5,
+                  maxval=1.5,
+                  dtype=tf.float32) 
+          avg_pooled = tf.reduce_sum(
+                weights * model_input, axis=[1]) / denominators
+      else:
+        avg_pooled = tf.reduce_sum(
+                model_input, axis=[1]) / denominators
+    
+    aggregated_model = getattr(video_level_models,
+                               FLAGS.video_level_classifier_model)
+    return aggregated_model().create_model(
+        model_input=avg_pooled,
+        num_frames=num_frames,
+        labels=labels,
+        l2_penalty=l2_penalty,
+        is_training=is_training,
         trainable=trainable,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    output = tf.nn.sigmoid(logits)
+        compute_loss=compute_loss,
+        augment=False,
+        vocab_size=vocab_size,
+       **unused_params)
 
-    if compute_loss:
-        with tf.variable_scope("loss_xent"):
-          loss = tf.losses.sigmoid_cross_entropy(
-                  labels=labels,
-                  logits=logits,
-                  reduction=tf.losses.Reduction.NONE
-          )
-          loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
-        with tf.variable_scope("reg_loss_xent"):
-            reg_loss = tf.constant(0.0)
-    else:
-        loss = None
-        reg_loss = None
- 
-    return {
-        "logits": logits,
-        "predictions": output,
-        "loss": loss,
-        "regularization_loss": reg_loss
-    }
+
+    
 
