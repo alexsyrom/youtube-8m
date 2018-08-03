@@ -234,10 +234,9 @@ class THSModel(models.BaseModel):
   def wide_layer(self, in_layer, in_layer2, l2_penalty, is_training, trainable):
     with tf.variable_scope("wide_layer"):
       net_list = [in_layer2] 
-      for weight in [-1, 1]:
-        for bias in [0., 0.5, 1.]:
-          net = tf.nn.relu(in_layer * weight - bias)
-          net_list.append(net)
+      for bias in [0., 0.5, 1.]:
+        net = tf.nn.relu(in_layer - bias)
+        net_list.append(net)
 
       net_list.append(net)
       net_concated = tf.concat(net_list, -1)
