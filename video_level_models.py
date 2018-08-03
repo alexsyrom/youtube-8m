@@ -232,9 +232,9 @@ class THSModel(models.BaseModel):
   def wide_layer(self, in_layer, in_layer2, l2_penalty):
     with tf.variable_scope("wide_layer"):
       net_list = [in_layer2] 
-      for weight in [-1, 1]:
-        relu = tf.nn.relu(in_layer * weight)
-        net_list.append(relu)
+      #for weight in [-1, 1]:
+      #  relu = tf.nn.relu(in_layer * weight)
+      #  net_list.append(relu)
       net_concated = tf.concat(net_list, -1)
 
       # net = slim.fully_connected(
@@ -247,10 +247,6 @@ class THSModel(models.BaseModel):
       net = in_layer
       net_list = list()
       for i in range(3):
-        net = slim.fully_connected(
-            net, 1024, activation_fn=tf.nn.relu,
-            trainable=trainable,
-            weights_regularizer=slim.l2_regularizer(l2_penalty))
         net = slim.fully_connected(
             net, 1024, activation_fn=tf.nn.relu,
             trainable=trainable,
