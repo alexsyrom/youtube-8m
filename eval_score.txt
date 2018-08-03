@@ -13,3 +13,4 @@ Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.512 | GAP: 0.854 | Avg_Loss: 3.89933
 Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.511 | GAP: 0.853 | Avg_Loss: 3.909817 | extra fc
 Avg_Hit@1: 0.882 | Avg_PERR: 0.793 | MAP: 0.506 | GAP: 0.853 | Avg_Loss: 3.895277 | only layer2
 Avg_Hit@1: 0.882 | Avg_PERR: 0.793 | MAP: 0.509 | GAP: 0.852 | Avg_Loss: 3.915304 | layer2 relu
+Avg_Hit@1: 0.882 | Avg_PERR: 0.795 | MAP: 0.512 | GAP: 0.854 | Avg_Loss: 3.897830 | 0.5

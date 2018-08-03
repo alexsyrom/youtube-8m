@@ -186,7 +186,9 @@ class THSModel(models.BaseModel):
     wide = self.wide_layer(
             model_input, 
             model_input_norm, 
-            l2_penalty)
+            l2_penalty,
+            is_training,
+            trainable)
     shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
     #deep = self.deep_layer(model_input, l2_penalty)
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
@@ -229,12 +231,15 @@ class THSModel(models.BaseModel):
       result = weight * model_input
       return result 
 
-  def wide_layer(self, in_layer, in_layer2, l2_penalty):
+  def wide_layer(self, in_layer, in_layer2, l2_penalty, is_training, trainable):
     with tf.variable_scope("wide_layer"):
       net_list = [in_layer2] 
       for weight in [-1, 1]:
-        relu = tf.nn.relu(in_layer2 * weight)
-        net_list.append(relu)
+        net = tf.nn.relu(in_layer * weight)
+        net_list.append(net)
+
+      net = tf.nn.relu(in_layer - 0.5)
+      net_list.append(net)
       net_concated = tf.concat(net_list, -1)
 
       # net = slim.fully_connected(
