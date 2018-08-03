@@ -246,7 +246,11 @@ class THSModel(models.BaseModel):
     with tf.variable_scope("shortcut_layer"):
       net = in_layer
       net_list = list()
-      for i in range(10):
+      for i in range(3):
+        net = slim.fully_connected(
+            net, 1024, activation_fn=tf.nn.relu,
+            trainable=trainable,
+            weights_regularizer=slim.l2_regularizer(l2_penalty))
         net = slim.fully_connected(
             net, 1024, activation_fn=tf.nn.relu,
             trainable=trainable,
