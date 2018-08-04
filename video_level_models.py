@@ -190,17 +190,24 @@ class THSModel(models.BaseModel):
             is_training,
             trainable)
     shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
-    #deep = self.deep_layer(model_input, l2_penalty)
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
 
     net_list = [wide, shortcut, res]
     net_concated = tf.concat(net_list, -1)
+    pre_logits = slim.fully_connected(
+        net_concated, vocab_size, activation_fn=None,
+        trainable=trainable,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    pre_output = tf.nn.sigmoid(pre_logits)
 
+    net_list = [wide, pre_output]
+    net_concated = tf.concat(net_list, -1)
     logits = slim.fully_connected(
         net_concated, vocab_size, activation_fn=None,
         trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     output = tf.nn.sigmoid(logits)
+
 
     if compute_loss:
         with tf.variable_scope("loss_xent"):
@@ -210,7 +217,13 @@ class THSModel(models.BaseModel):
                   reduction=tf.losses.Reduction.NONE
           )
           loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
-        reg_loss = tf.constant(0.0)
+        with tf.variable_scope("reg_loss_xent"):
+          reg_loss = tf.losses.sigmoid_cross_entropy(
+                  labels,
+                  pre_logits,
+                  reduction=tf.losses.Reduction.NONE
+          )
+          reg_loss = tf.reduce_mean(tf.reduce_sum(reg_loss, 1))
     else:
         loss = None
         reg_loss = None
@@ -318,7 +331,7 @@ class THSModel(models.BaseModel):
   def res_layer(self, in_layer, l2_penalty, is_training, trainable):
     with tf.variable_scope("res_layer"):
       shape = 1024 + 128
-      net = tf.nn.relu(in_layer)
+      net = in_layer
       for i in range(2):
         net = self.res_block(
                 net, 
