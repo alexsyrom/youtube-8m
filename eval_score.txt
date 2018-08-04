@@ -21,3 +21,4 @@ Avg_Hit@1: 0.880 | Avg_PERR: 0.791 | MAP: 0.506 | GAP: 0.851 | Avg_Loss: 3.94478
 Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.510 | GAP: 0.853 | Avg_Loss: 3.899782 | reg_loss
 Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.512 | GAP: 0.853 | Avg_Loss: 3.902099 | 2x2
 Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.512 | GAP: 0.853 | Avg_Loss: 3.900908 | 2+2
+Avg_Hit@1: 0.882 | Avg_PERR: 0.795 | MAP: 0.512 | GAP: 0.854 | Avg_Loss: 3.898290 | 0.3

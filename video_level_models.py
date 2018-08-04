@@ -236,7 +236,7 @@ class THSModel(models.BaseModel):
       for weight in [-1, 1]:
         net = tf.nn.relu(weight * in_layer)
         net_list.append(net)
-      for bias in [0.5, 1.]:
+      for bias in [0.3, 0.6]:
         net = tf.nn.relu(in_layer - bias)
         net_list.append(net)
 
