@@ -180,9 +180,8 @@ class THSModel(models.BaseModel):
     model_input_norm = tf.concat(
             [video, audio], 
             -1)
-    #model_input = self.cor_layer(
-    #        model_input_norm, l2_penalty, is_training, trainable)
-    model_input = model_input_norm
+    model_input = self.cor_layer(
+            model_input_norm, l2_penalty, is_training, trainable)
 
     wide = self.wide_layer(
             model_input, 
@@ -337,7 +336,7 @@ class THSModel(models.BaseModel):
         in_layer, shape, activation_fn=tf.nn.sigmoid,
         trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
-    bias = 0.1 * slim.fully_connected(
+    bias = 0.3 * slim.fully_connected(
         in_layer, shape, activation_fn=tf.nn.tanh,
         trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
