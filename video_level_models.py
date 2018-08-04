@@ -234,7 +234,7 @@ class THSModel(models.BaseModel):
   def wide_layer(self, in_layer, in_layer2, l2_penalty, is_training, trainable):
     with tf.variable_scope("wide_layer"):
       net_list = [in_layer2] 
-      for bias in [0., 0.25, 0.5, 0.75]:
+      for bias in [0., 0.5, 1.0]:
         net = tf.nn.relu(in_layer - bias)
         net_list.append(net)
 
@@ -318,7 +318,7 @@ class THSModel(models.BaseModel):
   def res_layer(self, in_layer, l2_penalty, is_training, trainable):
     with tf.variable_scope("res_layer"):
       shape = 1024 + 128
-      net = in_layer
+      net = tf.nn.relu(in_layer)
       for i in range(2):
         net = self.res_block(
                 net, 
