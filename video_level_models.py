@@ -332,12 +332,16 @@ class THSModel(models.BaseModel):
       return net
 
   def cor_block(self, in_layer, l2_penalty, is_training, shape, trainable):
-    weight = 2 * slim.fully_connected(
-        in_layer, shape, activation_fn=tf.nn.sigmoid,
+    inner = slim.fully_connected(
+        in_layer, shape, activation_fn=tf.nn.relu,
         trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
-    bias = 0.3 * slim.fully_connected(
-        in_layer, shape, activation_fn=tf.nn.tanh,
+    weight = 2 * slim.fully_connected(
+        inner, shape, activation_fn=tf.nn.sigmoid,
+        trainable=trainable,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    bias = 0.1 * slim.fully_connected(
+        inner, shape, activation_fn=tf.nn.tanh,
         trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     result = weight * in_layer + bias
