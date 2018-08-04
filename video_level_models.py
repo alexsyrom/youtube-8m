@@ -194,20 +194,12 @@ class THSModel(models.BaseModel):
 
     net_list = [wide, shortcut, res]
     net_concated = tf.concat(net_list, -1)
-    pre_logits = slim.fully_connected(
-        net_concated, vocab_size, activation_fn=None,
-        trainable=trainable,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    pre_output = tf.nn.sigmoid(pre_logits)
 
-    net_list = [wide, pre_output]
-    net_concated = tf.concat(net_list, -1)
     logits = slim.fully_connected(
         net_concated, vocab_size, activation_fn=None,
         trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     output = tf.nn.sigmoid(logits)
-
 
     if compute_loss:
         with tf.variable_scope("loss_xent"):
@@ -217,13 +209,7 @@ class THSModel(models.BaseModel):
                   reduction=tf.losses.Reduction.NONE
           )
           loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
-        with tf.variable_scope("reg_loss_xent"):
-          reg_loss = tf.losses.sigmoid_cross_entropy(
-                  labels,
-                  pre_logits,
-                  reduction=tf.losses.Reduction.NONE
-          )
-          reg_loss = tf.reduce_mean(tf.reduce_sum(reg_loss, 1))
+        reg_loss = tf.constant(0.)
     else:
         loss = None
         reg_loss = None
@@ -247,9 +233,10 @@ class THSModel(models.BaseModel):
   def wide_layer(self, in_layer, in_layer2, l2_penalty, is_training, trainable):
     with tf.variable_scope("wide_layer"):
       net_list = [in_layer2] 
-      for bias in [0., 0.5, 1.0]:
-        net = tf.nn.relu(in_layer - bias)
-        net_list.append(net)
+      for weight in [-1, 1]:
+        for bias in [0., 0.5]:
+          net = tf.nn.relu(weight * in_layer - bias)
+          net_list.append(net)
 
       net_list.append(net)
       net_concated = tf.concat(net_list, -1)

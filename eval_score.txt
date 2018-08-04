@@ -19,3 +19,4 @@ Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.509 | GAP: 0.853 | Avg_Loss: 3.89167
 Avg_Hit@1: 0.882 | Avg_PERR: 0.793 | MAP: 0.509 | GAP: 0.853 | Avg_Loss: 3.896784 | 4 biases
 Avg_Hit@1: 0.880 | Avg_PERR: 0.791 | MAP: 0.506 | GAP: 0.851 | Avg_Loss: 3.944784 | relu before res
 Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.510 | GAP: 0.853 | Avg_Loss: 3.899782 | reg_loss
+Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.512 | GAP: 0.853 | Avg_Loss: 3.902099 | 2x2
