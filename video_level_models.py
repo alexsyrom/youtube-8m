@@ -179,7 +179,7 @@ def get_confidence():
   print("label count ", label_count)
   arr = np.zeros(label_count, dtype=np.float32)
   alpha = 0
-  beta = 1000
+  beta = 100
   values = df[['Index', 'TrainVideoCount']].values
   for index, count in values:
     arr[index] = (alpha + count) / (beta + count)
