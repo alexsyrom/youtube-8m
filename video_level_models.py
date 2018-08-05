@@ -238,10 +238,9 @@ class THSModel(models.BaseModel):
             trainable)
     shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
+    av = self.av_layer(model_input, l2_penalty, is_training, trainable)
 
-    net_concated = tf.concat([wide, shortcut, res], -1)
-    net_concated = tf.layers.dropout(
-            net_concated, rate=0.1, training=is_training) 
+    net_concated = tf.concat([wide, shortcut, res, av], -1)
 
     with tf.variable_scope("verticals"):
       vertical_logits = slim.fully_connected(
@@ -315,7 +314,7 @@ class THSModel(models.BaseModel):
     with tf.variable_scope("av_layer"):
       audio = model_input[:, -128:]
       video = model_input[:, :-128]
-      shape = 128
+      shape = 32 
       with tf.variable_scope("audio"):
         net_audio = slim.fully_connected(
           audio, shape, activation_fn=tf.nn.relu,
