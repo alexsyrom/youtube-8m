@@ -222,6 +222,14 @@ class THSModel(models.BaseModel):
 
     net_list = [wide, shortcut, res]
     net_concated = tf.concat(net_list, -1)
+    vertical_logits = slim.fully_connected(
+        net_concated, 24, activation_fn=None,
+        trainable=trainable,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    vertical_preds = tf.nn.sigmoid(vertical_logits)
+
+    net_list = [wide, shortcut, res, vertical_preds]
+    net_concated = tf.concat(net_list, -1)
 
     logits = slim.fully_connected(
         net_concated, vocab_size, activation_fn=None,
@@ -239,10 +247,6 @@ class THSModel(models.BaseModel):
           loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
         if compute_reg_loss:
           with tf.variable_scope("reg_loss_xent"):
-            vertical_logits = slim.fully_connected(
-                net_concated, 24, activation_fn=None,
-                trainable=trainable,
-                weights_regularizer=slim.l2_regularizer(l2_penalty))
             vertical_labels = tf.tensordot(
                     tf.cast(labels, tf.float64), 
                     get_label_vertical(), 
