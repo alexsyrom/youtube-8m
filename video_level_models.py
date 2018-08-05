@@ -238,9 +238,8 @@ class THSModel(models.BaseModel):
             trainable)
     shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
-    av = self.av_layer(model_input, l2_penalty, is_training, trainable)
 
-    net_concated = tf.concat([wide, shortcut, res, av], -1)
+    net_concated = tf.concat([wide, shortcut, res], -1)
 
     with tf.variable_scope("verticals"):
       vertical_logits = slim.fully_connected(
@@ -279,12 +278,31 @@ class THSModel(models.BaseModel):
                     get_label_vertical(), 
                     [[1], [0]])
             vertical_labels = vertical_labels - tf.nn.relu(vertical_labels - 1)
-            reg_loss = tf.losses.sigmoid_cross_entropy(
+            xent_loss = tf.losses.sigmoid_cross_entropy(
                     vertical_labels,
                     vertical_logits,
                     reduction=tf.losses.Reduction.NONE
             )
-            reg_loss = tf.reduce_mean(tf.reduce_sum(reg_loss, 1))
+            xent_loss = tf.reduce_mean(tf.reduce_sum(xent_loss, 1))
+          with tf.variable_scope("reg_loss_pair_hinge"):
+            first_labels_count = 10
+            first_labels = labels[:, :first_labels_count]
+            first_labels = tf.reshape(first_labels, [-1])
+            first_labels = tf.cast(first_labels, tf.float32)
+            pair_labels = (tf.expand_dims(first_labels, 0)
+                    - tf.expand_dims(first_labels, 1))
+            pair_weights = pair_labels * pair_labels
+            pair_labels = tf.nn.relu(pair_labels)
+            first_logits = logits[:, :first_labels_count]
+            first_logits = tf.reshape(first_logits, [-1])
+            pair_logits = (tf.expand_dims(first_logits, 0)
+                    - tf.expand_dims(first_logits, 1))
+            pair_hinge_loss = tf.losses.hinge_loss(
+                    pair_labels,
+                    pair_logits,
+                    pair_weights,
+            )
+          reg_loss = 100 * pair_hinge_loss + xent_loss
         else:
           reg_loss = tf.constant(0.)
     else:
