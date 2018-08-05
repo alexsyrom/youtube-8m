@@ -33,3 +33,5 @@ Avg_Hit@1: 0.871 | Avg_PERR: 0.780 | MAP: 0.505 | GAP: 0.840 | Avg_Loss: 3.90357
 Avg_Hit@1: 0.880 | Avg_PERR: 0.792 | MAP: 0.509 | GAP: 0.851 | Avg_Loss: 3.903576 | beta 100
 Avg_Hit@1: 0.882 | Avg_PERR: 0.793 | MAP: 0.510 | GAP: 0.852 | Avg_Loss: 3.903576 | beta 10
 Avg_Hit@1: 0.881 | Avg_PERR: 0.793 | MAP: 0.509 | GAP: 0.852 | Avg_Loss: 3.910071 | cor preds
+Avg_Hit@1: 0.882 | Avg_PERR: 0.793 | MAP: 0.509 | GAP: 0.852 | Avg_Loss: 3.917170 | vertical features
+Avg_Hit@1: 0.882 | Avg_PERR: 0.793 | MAP: 0.510 | GAP: 0.852 | Avg_Loss: 3.907536 | vertical filtered

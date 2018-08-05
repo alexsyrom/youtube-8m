@@ -248,13 +248,14 @@ class THSModel(models.BaseModel):
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     vertical_preds = tf.nn.sigmoid(vertical_logits)
 
-    net_list = [wide, shortcut, res, vertical_preds]
-    net_concated = tf.concat(net_list, -1)
-
-    vertical_features = slim.fully_connected(
-        net_concated, 1024, activation_fn=tf.nn.relu,
-        trainable=trainable,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    with tf.variable_scope("vertical_features"):
+      vertical_features = slim.fully_connected(
+          net_concated, 24 * 128, activation_fn=tf.nn.relu,
+          trainable=trainable,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      vertical_features = tf.reshape(vertical_features, [-1, 128, 24])
+      vertical_features = vertical_features * tf.expand_dims(vertical_preds, 1)
+      vertical_features = tf.reshape(vertical_features, [-1, 128 * 24])
  
     net_list = [wide, shortcut, res, vertical_features]
     net_concated = tf.concat(net_list, -1)
