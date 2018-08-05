@@ -332,10 +332,7 @@ class THSModel(models.BaseModel):
       return net
 
   def cor_block(self, in_layer, l2_penalty, is_training, shape, trainable):
-    inner = slim.fully_connected(
-        in_layer, shape, activation_fn=tf.nn.relu,
-        trainable=trainable,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    inner = in_layer
     weight = 2 * slim.fully_connected(
         inner, shape, activation_fn=tf.nn.sigmoid,
         trainable=trainable,
@@ -353,6 +350,7 @@ class THSModel(models.BaseModel):
       net = in_layer
       for i in range(1):
         net = self.cor_block(net, l2_penalty, is_training, shape, trainable)
+      net = tf.layers.dropout(net, rate=0.1, training=is_training) 
       return net
 
 
