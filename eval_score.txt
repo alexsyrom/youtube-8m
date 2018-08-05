@@ -35,3 +35,4 @@ Avg_Hit@1: 0.882 | Avg_PERR: 0.793 | MAP: 0.510 | GAP: 0.852 | Avg_Loss: 3.90357
 Avg_Hit@1: 0.881 | Avg_PERR: 0.793 | MAP: 0.509 | GAP: 0.852 | Avg_Loss: 3.910071 | cor preds
 Avg_Hit@1: 0.882 | Avg_PERR: 0.793 | MAP: 0.509 | GAP: 0.852 | Avg_Loss: 3.917170 | vertical features
 Avg_Hit@1: 0.882 | Avg_PERR: 0.793 | MAP: 0.510 | GAP: 0.852 | Avg_Loss: 3.907536 | vertical filtered
+Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.512 | GAP: 0.854 | Avg_Loss: 3.869899 | vertical gates

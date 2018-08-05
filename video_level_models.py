@@ -242,23 +242,21 @@ class THSModel(models.BaseModel):
     net_list = [wide, shortcut, res]
     net_concated = tf.concat(net_list, -1)
 
-    vertical_logits = slim.fully_connected(
-        net_concated, 24, activation_fn=None,
-        trainable=trainable,
-        weights_regularizer=slim.l2_regularizer(l2_penalty))
-    vertical_preds = tf.nn.sigmoid(vertical_logits)
-
-    with tf.variable_scope("vertical_features"):
-      vertical_features = slim.fully_connected(
-          net_concated, 24 * 128, activation_fn=tf.nn.relu,
+    with tf.variable_scope("verticals"):
+      vertical_logits = slim.fully_connected(
+          net_concated, 24, activation_fn=None,
           trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
-      vertical_features = tf.reshape(vertical_features, [-1, 128, 24])
-      vertical_features = vertical_features * tf.expand_dims(vertical_preds, 1)
-      vertical_features = tf.reshape(vertical_features, [-1, 128 * 24])
+      vertical_preds = tf.nn.sigmoid(vertical_logits)
+
+      vertical_gates = slim.fully_connected(
+          vertical_preds, 
+          net_concated.get_shape().as_list()[-1], 
+          activation_fn=tf.nn.sigmoid,
+          trainable=trainable,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
  
-    net_list = [wide, shortcut, res, vertical_features]
-    net_concated = tf.concat(net_list, -1)
+    net_concated = net_concated * vertical_gates
 
     logits = slim.fully_connected(
         net_concated, vocab_size, activation_fn=None,
