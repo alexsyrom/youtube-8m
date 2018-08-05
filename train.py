@@ -279,6 +279,7 @@ def build_graph(reader,
             augment=True,
             is_training=True,
             trainable=True,
+            compute_reg_loss=True,
             compute_loss=True)
           for variable in slim.get_model_variables():
             tf.summary.histogram(variable.op.name, variable)

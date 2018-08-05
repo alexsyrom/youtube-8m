@@ -18,6 +18,8 @@ import math
 import models
 import tensorflow as tf
 import utils
+import pandas as pd
+import numpy as np
 
 from tensorflow import flags
 import tensorflow.contrib.slim as slim
@@ -142,9 +144,28 @@ def threshold_layer(input_layer, shape):
 
 _vertical_label = None
 
-def get_vertical_label():
+def get_label_vertical():
   if _vertical_label is not None:
     return _vertical_label
+  df = pd.read_csv("vocabulary.csv")
+  ver_set = set(df[['Vertical1','Vertical2','Vertical3']].values.flatten())
+  print("raw ver_set", ver_set)
+  ver_set = set([x for x in ver_set if x is not np.nan and x != '(Unknown)'])
+  print("ver_set", ver_set)
+  ver_count = len(ver_set)
+  label_count = df.shape[0]
+  print("ver count ", ver_count)
+  print("label count ", label_count)
+  verticals_map = {value: index 
+          for index, value in enumerate(sorted(ver_set))}
+  arr = np.zeros([label_count, ver_count], dtype=np.float64)
+  for ver_index in range(1, 4):
+    values = df[['Index', 'Vertical{}'.format(ver_index)]].values
+    for index, vertical in values:
+      if vertical in ver_set:
+        arr[index, verticals_map[vertical]] = 1.
+  print(arr)
+  return tf.constant(arr)
 
 
 class THSModel(models.BaseModel):
@@ -158,6 +179,7 @@ class THSModel(models.BaseModel):
           is_training=False,
           trainable=False,
           compute_loss=False,
+          compute_reg_loss=False,
           augment=True,
           **unused_params):
     if augment:
@@ -215,7 +237,25 @@ class THSModel(models.BaseModel):
                   reduction=tf.losses.Reduction.NONE
           )
           loss = tf.reduce_mean(tf.reduce_sum(loss, 1))
-        reg_loss = tf.constant(0.)
+        if compute_reg_loss:
+          with tf.variable_scope("reg_loss_xent"):
+            vertical_logits = slim.fully_connected(
+                net_concated, 24, activation_fn=None,
+                trainable=trainable,
+                weights_regularizer=slim.l2_regularizer(l2_penalty))
+            vertical_labels = tf.tensordot(
+                    tf.cast(labels, tf.float64), 
+                    get_label_vertical(), 
+                    [[1], [0]])
+            vertical_labels = vertical_labels - tf.nn.relu(vertical_labels - 1)
+            reg_loss = tf.losses.sigmoid_cross_entropy(
+                    vertical_labels,
+                    vertical_logits,
+                    reduction=tf.losses.Reduction.NONE
+            )
+            reg_loss = tf.reduce_mean(tf.reduce_sum(reg_loss, 1))
+        else:
+          reg_loss = tf.constant(0.)
     else:
         loss = None
         reg_loss = None
@@ -356,7 +396,7 @@ class THSModel(models.BaseModel):
       net = in_layer
       for i in range(1):
         net = self.cor_block(net, l2_penalty, is_training, shape, trainable)
-      net = tf.layers.dropout(net, rate=0.05, training=is_training) 
+      net = tf.layers.dropout(net, rate=0.1, training=is_training) 
       return net
 
 

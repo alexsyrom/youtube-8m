@@ -25,4 +25,6 @@ Avg_Hit@1: 0.882 | Avg_PERR: 0.795 | MAP: 0.512 | GAP: 0.854 | Avg_Loss: 3.89829
 Avg_Hit@1: 0.880 | Avg_PERR: 0.791 | MAP: 0.506 | GAP: 0.851 | Avg_Loss: 3.952354 | wo cor_layer
 Avg_Hit@1: 0.881 | Avg_PERR: 0.792 | MAP: 0.504 | GAP: 0.851 | Avg_Loss: 3.954853 | 0.3 in cor
 Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.511 | GAP: 0.854 | Avg_Loss: 3.891639 | dropout in cor
-Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.510 | GAP: 0.853 | Avg_Loss: 3.894571 | 0.3 dropout
+Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.510 | GAP: 0.853 | Avg_Loss: 3.894571 | 0.2 dropout
+Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.512 | GAP: 0.854 | Avg_Loss: 3.892545 | 0.05 dropout
+Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.510 | GAP: 0.853 | Avg_Loss: 3.898392 | verticals
