@@ -239,8 +239,8 @@ class THSModel(models.BaseModel):
     shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
 
-    net_list = [wide, shortcut, res]
-    net_concated = tf.concat(net_list, -1)
+    wo_wide = tf.concat([shortcut, res], -1)
+    net_concated = tf.concat([wide, wo_wide], -1)
 
     with tf.variable_scope("verticals"):
       vertical_logits = slim.fully_connected(
@@ -251,12 +251,13 @@ class THSModel(models.BaseModel):
 
       vertical_gates = slim.fully_connected(
           vertical_preds, 
-          net_concated.get_shape().as_list()[-1], 
+          wo_wide.get_shape().as_list()[-1], 
           activation_fn=tf.nn.sigmoid,
           trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
  
-    net_concated = net_concated * vertical_gates
+    wo_wide = wo_wide * vertical_gates
+    net_concated = tf.concat([wide, wo_wide], -1)
 
     logits = slim.fully_connected(
         net_concated, vocab_size, activation_fn=None,
