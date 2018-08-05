@@ -284,25 +284,16 @@ class THSModel(models.BaseModel):
                     reduction=tf.losses.Reduction.NONE
             )
             xent_loss = tf.reduce_mean(tf.reduce_sum(xent_loss, 1))
-          with tf.variable_scope("reg_loss_pair_hinge"):
-            first_labels_count = 10
-            first_labels = labels[:, :first_labels_count]
-            first_labels = tf.reshape(first_labels, [-1])
-            first_labels = tf.cast(first_labels, tf.float32)
-            pair_labels = (tf.expand_dims(first_labels, 0)
-                    - tf.expand_dims(first_labels, 1))
-            pair_weights = pair_labels * pair_labels
-            pair_labels = tf.nn.relu(pair_labels)
-            first_logits = logits[:, :first_labels_count]
-            first_logits = tf.reshape(first_logits, [-1])
-            pair_logits = (tf.expand_dims(first_logits, 0)
-                    - tf.expand_dims(first_logits, 1))
-            pair_hinge_loss = tf.losses.hinge_loss(
-                    pair_labels,
-                    pair_logits,
-                    pair_weights,
-            )
-          reg_loss = 100 * pair_hinge_loss + xent_loss
+            xent_loss *= 0.1
+            tf.losses.add_loss(xent_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
+            tf.summary.scalar("xent_loss", xent_loss, family="reg_loss")
+          with tf.variable_scope("reg_loss_gate"):
+            gate_sum = tf.reduce_sum(vertical_gates, -1)
+            gate_loss = tf.reduce_mean(gate_sum) / 1000
+            gate_loss *= 0.1
+            tf.losses.add_loss(gate_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
+            tf.summary.scalar("gate_loss", gate_loss, family="reg_loss")
+          reg_loss = tf.constant(0.)
         else:
           reg_loss = tf.constant(0.)
     else:
