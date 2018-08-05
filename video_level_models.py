@@ -140,6 +140,12 @@ def threshold_layer(input_layer, shape):
             kernel_initializer=tf.initializers.identity)
     return layer
 
+_vertical_label = None
+
+def get_vertical_label():
+  if _vertical_label is not None:
+    return _vertical_label
+
 
 class THSModel(models.BaseModel):
 
