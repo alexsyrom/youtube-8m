@@ -238,9 +238,9 @@ class THSModel(models.BaseModel):
             trainable)
     shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
+    av = self.av_layer(model_input, l2_penalty, is_training, trainable)
 
-    wo_wide = tf.concat([shortcut, res], -1)
-    net_concated = tf.concat([wide, wo_wide], -1)
+    net_concated = tf.concat([wide, shortcut, res, av], -1)
 
     with tf.variable_scope("verticals"):
       vertical_logits = slim.fully_connected(
@@ -251,13 +251,12 @@ class THSModel(models.BaseModel):
 
       vertical_gates = slim.fully_connected(
           vertical_preds, 
-          wo_wide.get_shape().as_list()[-1], 
+          net_concated.get_shape().as_list()[-1], 
           activation_fn=tf.nn.sigmoid,
           trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
  
-    wo_wide = wo_wide * vertical_gates
-    net_concated = tf.concat([wide, wo_wide], -1)
+    net_concated = net_concated * vertical_gates
 
     logits = slim.fully_connected(
         net_concated, vocab_size, activation_fn=None,
@@ -297,6 +296,32 @@ class THSModel(models.BaseModel):
         "loss": loss,
         "regularization_loss": reg_loss
     }
+
+  def fc_bn_relu(self, net, shape, l2_penalty, is_training, trainable):
+    net = slim.fully_connected(
+        net, shape, activation_fn=None,
+        trainable=trainable,
+        biases_initializer=None,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+    net = self.res_bn(
+            net, training=is_training,
+            trainable=trainable,
+            l2_penalty=l2_penalty)
+    net = tf.nn.relu(net)
+    return net
+
+  def av_layer(self, model_input, l2_penalty, is_training, trainable):
+    with tf.variable_scope("av_layer"):
+      audio = model_input[:, -128:]
+      video = model_input[:, :-128]
+      shape = 128
+      with tf.variable_scope("audio"):
+        net_audio = self.fc_bn_relu(
+                audio, shape, l2_penalty, is_training, trainable)
+      with tf.variable_scope("video"):
+        net_video = self.fc_bn_relu(
+                video, shape, l2_penalty, is_training, trainable)
+      return net_audio * net_video
 
   def correct_input(self, model_input, l2_penalty, trainable):
     with tf.variable_scope("correct_input"):
