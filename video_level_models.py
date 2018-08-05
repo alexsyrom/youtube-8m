@@ -142,6 +142,7 @@ def threshold_layer(input_layer, shape):
             kernel_initializer=tf.initializers.identity)
     return layer
 
+
 _vertical_label = None
 
 def get_label_vertical():
@@ -168,6 +169,24 @@ def get_label_vertical():
   return tf.constant(arr)
 
 
+_confidence = None
+
+def get_confidence():
+  if _confidence is not None:
+    return _confidence
+  df = pd.read_csv("vocabulary.csv")
+  label_count = df.shape[0]
+  print("label count ", label_count)
+  arr = np.zeros(label_count, dtype=np.float32)
+  alpha = 0
+  beta = 1000
+  values = df[['Index', 'TrainVideoCount']].values
+  for index, count in values:
+    arr[index] = (alpha + count) / (beta + count)
+  print(arr)
+  return tf.constant(arr)
+
+ 
 class THSModel(models.BaseModel):
 
   def create_model(self, 
@@ -236,6 +255,9 @@ class THSModel(models.BaseModel):
         trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     output = tf.nn.sigmoid(logits)
+
+    if not is_training:
+      output = output * get_confidence()
 
     if compute_loss:
         with tf.variable_scope("loss_xent"):
