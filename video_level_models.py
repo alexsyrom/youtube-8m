@@ -240,6 +240,8 @@ class THSModel(models.BaseModel):
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
 
     net_concated = tf.concat([wide, shortcut, res], -1)
+    net_concated = tf.layers.dropout(
+            net_concated, rate=0.1, training=is_training) 
 
     with tf.variable_scope("verticals"):
       vertical_logits = slim.fully_connected(
@@ -248,18 +250,12 @@ class THSModel(models.BaseModel):
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       vertical_preds = tf.nn.sigmoid(vertical_logits)
 
-      vertical_gates = self.fc_bn_relu(
+      vertical_gates = slim.fully_connected(
           vertical_preds, 
           net_concated.get_shape().as_list()[-1], 
-          l2_penalty,
-          is_training,
-          trainable)
-      #vertical_gates = slim.fully_connected(
-      #    vertical_preds, 
-      #    net_concated.get_shape().as_list()[-1], 
-      #    activation_fn=tf.nn.sigmoid,
-      #    trainable=trainable,
-      #    weights_regularizer=slim.l2_regularizer(l2_penalty))
+          activation_fn=tf.nn.sigmoid,
+          trainable=trainable,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
  
     net_concated = net_concated * vertical_gates
 
