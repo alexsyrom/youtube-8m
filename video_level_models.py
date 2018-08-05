@@ -239,13 +239,24 @@ class THSModel(models.BaseModel):
     shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
 
+    net_list = [wide, shortcut, res]
+    net_concated = tf.concat(net_list, -1)
+
     vertical_logits = slim.fully_connected(
-        model_input, 24, activation_fn=None,
+        net_concated, 24, activation_fn=None,
         trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     vertical_preds = tf.nn.sigmoid(vertical_logits)
 
     net_list = [wide, shortcut, res, vertical_preds]
+    net_concated = tf.concat(net_list, -1)
+
+    vertical_features = slim.fully_connected(
+        net_concated, 1024, activation_fn=tf.nn.relu,
+        trainable=trainable,
+        weights_regularizer=slim.l2_regularizer(l2_penalty))
+ 
+    net_list = [wide, shortcut, res, vertical_features]
     net_concated = tf.concat(net_list, -1)
 
     logits = slim.fully_connected(
