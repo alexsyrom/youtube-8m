@@ -350,7 +350,7 @@ class THSModel(models.BaseModel):
       net = in_layer
       for i in range(1):
         net = self.cor_block(net, l2_penalty, is_training, shape, trainable)
-      net = tf.layers.dropout(net, rate=0.1, training=is_training) 
+      net = tf.layers.dropout(net, rate=0.2, training=is_training) 
       return net
 
 
