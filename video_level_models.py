@@ -179,7 +179,7 @@ def get_confidence():
   print("label count ", label_count)
   arr = np.zeros(label_count, dtype=np.float32)
   alpha = 0
-  beta = 100
+  beta = 10
   values = df[['Index', 'TrainVideoCount']].values
   for index, count in values:
     arr[index] = (alpha + count) / (beta + count)
@@ -239,10 +239,8 @@ class THSModel(models.BaseModel):
     shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
 
-    net_list = [wide, shortcut, res]
-    net_concated = tf.concat(net_list, -1)
     vertical_logits = slim.fully_connected(
-        net_concated, 24, activation_fn=None,
+        model_input, 24, activation_fn=None,
         trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     vertical_preds = tf.nn.sigmoid(vertical_logits)
@@ -255,9 +253,6 @@ class THSModel(models.BaseModel):
         trainable=trainable,
         weights_regularizer=slim.l2_regularizer(l2_penalty))
     output = tf.nn.sigmoid(logits)
-
-    if not is_training:
-      output = output * get_confidence()
 
     if compute_loss:
         with tf.variable_scope("loss_xent"):
