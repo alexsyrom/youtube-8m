@@ -227,22 +227,22 @@ class THSModel(models.BaseModel):
     model_input_norm = tf.concat(
             [video, audio], 
             -1)
-    #model_input = self.cor_layer(
-    #        model_input_norm, l2_penalty, is_training, trainable)
-    model_input = model_input_norm
+    model_input = self.cor_layer(
+            model_input_norm, l2_penalty, is_training, trainable)
 
-    wide = self.wide_layer(
+    with tf.variable_scope("feature_extractor"):
+      wide = self.wide_layer(
             model_input, 
             model_input_norm, 
             l2_penalty,
             is_training,
             trainable)
-    shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
-    res = self.res_layer(model_input, l2_penalty, is_training, trainable)
-    deep_res = self.deep_res_layer(
+      shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
+      res = self.res_layer(model_input, l2_penalty, is_training, trainable)
+      deep_res = self.deep_res_layer(
             model_input, l2_penalty, is_training, trainable)
-
-    net_concated = tf.concat([wide, shortcut, res, deep_res], -1)
+      g = self.gate_layer(model_input, l2_penalty, is_training, trainable)
+      net_concated = tf.concat([wide, shortcut, res, deep_res, g], -1)
 
     with tf.variable_scope("verticals"):
       vertical_net = slim.fully_connected(
@@ -326,6 +326,33 @@ class THSModel(models.BaseModel):
     net = tf.nn.relu(net)
     return net
 
+  def gate_block(
+          self, in_layer, shape, l2_penalty, is_training, trainable, suf):
+    with tf.variable_scope("gate_block_" + suf):
+      in_shape = in_layer.get_shape().as_list()[-1] 
+      state = slim.fully_connected(
+          in_layer, shape, activation_fn=tf.nn.relu,
+          trainable=trainable,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      gate = slim.fully_connected(
+          state, in_shape, activation_fn=tf.nn.sigmoid,
+          trainable=trainable,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      add = slim.fully_connected(
+          state, in_shape, activation_fn=tf.nn.tanh,
+          trainable=trainable,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      result = in_layer * gate + add * (1 - gate)
+    return result
+
+  def gate_layer(self, model_input, l2_penalty, is_training, trainable):
+    with tf.variable_scope("gate_layer"):
+      net = model_input
+      for i in range(2):
+          net = self.gate_block(
+                  net, 128, l2_penalty, is_training, trainable, str(i))
+    return net
+
   def av_layer(self, model_input, l2_penalty, is_training, trainable):
     with tf.variable_scope("av_layer"):
       audio = model_input[:, -128:]
@@ -352,6 +379,14 @@ class THSModel(models.BaseModel):
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       result = weight * model_input
       return result 
+
+  def pair_block(self, in_layer, shape, l2_penalty, is_training, trainable):
+    net = in_layer[:, :shape]
+    first = tf.expand_dims(net, 1)
+    second = tf.expand_dims(net, 2)
+    mul = first * second
+    result = tf.reshape(mul, [-1, shape * shape])
+    return result
 
   def wide_layer(self, in_layer, in_layer2, l2_penalty, is_training, trainable):
     with tf.variable_scope("wide_layer"):
