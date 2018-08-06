@@ -362,7 +362,6 @@ class THSModel(models.BaseModel):
         net = tf.nn.relu(in_layer - bias)
         net_list.append(net)
 
-      net_list.append(net)
       net_concated = tf.concat(net_list, -1)
 
       # net = slim.fully_connected(

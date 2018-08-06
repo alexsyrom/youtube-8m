@@ -175,6 +175,53 @@ def get_latest_checkpoint():
   return latest_index_file[:-6]
 
 
+def lay(index):
+  if index < 5760:
+    if index < 1152:
+      return "wide raw", index
+    index -= 1152
+    if index < 1152:
+      return "wide -1", index
+    index -= 1152
+    if index < 1152:
+      return "wide 1", index
+    index -= 1152
+    return "wide 0.5", index
+  index -= 5760
+  if index < 256:
+    return "shortcut", index
+  index -= 256
+  if index < 1152:
+    return "res", index
+  index -= 1152
+  return "deep_res", index
+
+
+from collections import Counter
+
+
+def watch_gates(sess):
+  return
+  all_vars= tf.global_variables()
+  print(all_vars)
+  def get_var(name):
+    for i in range(len(all_vars)):
+      if all_vars[i].name.startswith(name):
+        return all_vars[i]
+    return None
+  gates = get_var('tower/verticals/fully_connected_2/biases')
+  arr = sess.run([gates])[0]
+  print(arr)
+  counter = Counter()
+  for i in range(len(arr)):
+    if arr[i] < -6:
+      name, index = lay(i)
+      counter[name] += 1
+      print(name, index, arr[i])
+  print(counter)
+  exit()
+
+
 def evaluation_loop(video_id_batch, prediction_batch, label_batch, loss,
                     summary_op, saver, summary_writer, evl_metrics,
                     last_global_step_val):
@@ -218,6 +265,7 @@ def evaluation_loop(video_id_batch, prediction_batch, label_batch, loss,
       return global_step_val
 
     sess.run([tf.local_variables_initializer()])
+    watch_gates(sess)
 
     # Start the queue runners.
     fetches = [video_id_batch, prediction_batch, label_batch, loss, summary_op]

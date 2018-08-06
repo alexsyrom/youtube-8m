@@ -45,3 +45,5 @@ Avg_Hit@1: 0.882 | Avg_PERR: 0.794 | MAP: 0.512 | GAP: 0.854 | Avg_Loss: 3.87224
 Avg_Hit@1: 0.883 | Avg_PERR: 0.795 | MAP: 0.511 | GAP: 0.855 | Avg_Loss: 3.846235 | gate loss
 Avg_Hit@1: 0.883 | Avg_PERR: 0.795 | MAP: 0.512 | GAP: 0.855 | Avg_Loss: 3.841726 | vertical net
 Avg_Hit@1: 0.883 | Avg_PERR: 0.796 | MAP: 0.511 | GAP: 0.855 | Avg_Loss: 3.840181 | deep res
+Avg_Hit@1: 0.883 | Avg_PERR: 0.795 | MAP: 0.511 | GAP: 0.855 | Avg_Loss: 3.845227 | 256 shortcut
+Avg_Hit@1: 0.883 | Avg_PERR: 0.795 | MAP: 0.511 | GAP: 0.855 | Avg_Loss: 3.837919 | fix wide bug
