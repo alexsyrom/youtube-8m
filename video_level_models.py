@@ -237,12 +237,12 @@ class THSModel(models.BaseModel):
             l2_penalty,
             is_training,
             trainable)
-      shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
+      shortcut = self.shortcut_layer(
+              model_input, l2_penalty, is_training,trainable)
       res = self.res_layer(model_input, l2_penalty, is_training, trainable)
       deep_res = self.deep_res_layer(
             model_input, l2_penalty, is_training, trainable)
-      g = self.gate_layer(model_input, l2_penalty, is_training, trainable)
-      net_concated = tf.concat([wide, shortcut, res, deep_res, g], -1)
+      net_concated = tf.concat([wide, shortcut, res, deep_res], -1)
 
     with tf.variable_scope("verticals"):
       vertical_net = slim.fully_connected(
@@ -380,14 +380,6 @@ class THSModel(models.BaseModel):
       result = weight * model_input
       return result 
 
-  def pair_block(self, in_layer, shape, l2_penalty, is_training, trainable):
-    net = in_layer[:, :shape]
-    first = tf.expand_dims(net, 1)
-    second = tf.expand_dims(net, 2)
-    mul = first * second
-    result = tf.reshape(mul, [-1, shape * shape])
-    return result
-
   def wide_layer(self, in_layer, in_layer2, l2_penalty, is_training, trainable):
     with tf.variable_scope("wide_layer"):
       net_list = [in_layer2] 
@@ -402,9 +394,11 @@ class THSModel(models.BaseModel):
       #     weights_regularizer=slim.l2_regularizer(l2_penalty))
       return net_concated
 
-  def shortcut_layer(self, in_layer, l2_penalty, trainable):
+  def shortcut_layer(self, in_layer, l2_penalty, is_training, trainable):
     with tf.variable_scope("shortcut_layer"):
-      net = in_layer
+      net = self.cor_layer(
+            in_layer, l2_penalty, is_training, trainable)
+      #net = in_layer
       net_list = list()
       for i in range(3):
         net = slim.fully_connected(
@@ -474,7 +468,9 @@ class THSModel(models.BaseModel):
   def res_layer(self, in_layer, l2_penalty, is_training, trainable):
     with tf.variable_scope("res_layer"):
       shape = 1024 + 128
-      net = in_layer
+      net = self.cor_layer(
+            in_layer, l2_penalty, is_training, trainable)
+      #net = in_layer
       for i in range(2):
         net = self.res_block(
                 net, 
@@ -488,8 +484,11 @@ class THSModel(models.BaseModel):
   def deep_res_layer(self, in_layer, l2_penalty, is_training, trainable):
     with tf.variable_scope("deep_res_layer"):
       shape = 256 
+      net = self.cor_layer(
+            in_layer, l2_penalty, is_training, trainable)
+      #net = in_layer
       net = slim.fully_connected(
-          in_layer, shape, activation_fn=tf.nn.relu,
+          net, shape, activation_fn=tf.nn.relu,
           trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       for i in range(10):
