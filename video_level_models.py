@@ -238,8 +238,10 @@ class THSModel(models.BaseModel):
             trainable)
     shortcut = self.shortcut_layer(model_input, l2_penalty, trainable)
     res = self.res_layer(model_input, l2_penalty, is_training, trainable)
+    deep_res = self.deep_res_layer(
+            model_input, l2_penalty, is_training, trainable)
 
-    net_concated = tf.concat([wide, shortcut, res], -1)
+    net_concated = tf.concat([wide, shortcut, res, deep_res], -1)
 
     with tf.variable_scope("verticals"):
       vertical_net = slim.fully_connected(
@@ -442,6 +444,23 @@ class THSModel(models.BaseModel):
       shape = 1024 + 128
       net = in_layer
       for i in range(2):
+        net = self.res_block(
+                net, 
+                l2_penalty, 
+                is_training, 
+                shape, 
+                str(i),
+                trainable)
+      return net
+
+  def deep_res_layer(self, in_layer, l2_penalty, is_training, trainable):
+    with tf.variable_scope("deep_res_layer"):
+      shape = 256 
+      net = slim.fully_connected(
+          in_layer, shape, activation_fn=tf.nn.relu,
+          trainable=trainable,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
+      for i in range(10):
         net = self.res_block(
                 net, 
                 l2_penalty, 
