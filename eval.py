@@ -176,7 +176,7 @@ def get_latest_checkpoint():
 
 
 def lay(index):
-  if index < 5760:
+  if index < 3 * 1152:
     if index < 1152:
       return "wide raw", index
     index -= 1152
@@ -185,9 +185,7 @@ def lay(index):
     index -= 1152
     if index < 1152:
       return "wide 1", index
-    index -= 1152
-    return "wide 0.5", index
-  index -= 5760
+  index -= 3 * 1152
   if index < 256:
     return "shortcut", index
   index -= 256
@@ -214,7 +212,7 @@ def watch_gates(sess):
   print(arr)
   counter = Counter()
   for i in range(len(arr)):
-    if arr[i] < -6:
+    if arr[i] > 0.5:
       name, index = lay(i)
       counter[name] += 1
       print(name, index, arr[i])
