@@ -242,8 +242,12 @@ class THSModel(models.BaseModel):
     net_concated = tf.concat([wide, shortcut, res], -1)
 
     with tf.variable_scope("verticals"):
+      vertical_net = slim.fully_connected(
+          net_concated, 1024, activation_fn=tf.nn.relu,
+          trainable=trainable,
+          weights_regularizer=slim.l2_regularizer(l2_penalty))
       vertical_logits = slim.fully_connected(
-          net_concated, 24, activation_fn=None,
+          vertical_net, 24, activation_fn=None,
           trainable=trainable,
           weights_regularizer=slim.l2_regularizer(l2_penalty))
       vertical_preds = tf.nn.sigmoid(vertical_logits)
