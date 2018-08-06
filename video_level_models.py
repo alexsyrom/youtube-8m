@@ -227,8 +227,9 @@ class THSModel(models.BaseModel):
     model_input_norm = tf.concat(
             [video, audio], 
             -1)
-    model_input = self.cor_layer(
-            model_input_norm, l2_penalty, is_training, trainable)
+    #model_input = self.cor_layer(
+    #        model_input_norm, l2_penalty, is_training, trainable)
+    model_input = model_input_norm
 
     wide = self.wide_layer(
             model_input, 
