@@ -1,3 +1,8 @@
+# My solution
+
+59th place and bronze medal, 0.85633 GAP at [private leaderborad](https://www.kaggle.com/c/youtube8m-2018/leaderboard).
+I used only video level features. Details in THSModel class in video_level_models.py
+
 # YouTube-8M Tensorflow Starter Code
 
 This repo contains starter code for training and evaluating machine learning
